@@ -1,0 +1,22 @@
+Analyzing create_trip_screen.dart...                            
+
+warning • Unused import: 'package:trackersales/screens/location_picker_screen.dart' • lib/screens/create_trip_screen.dart:7:8 • unused_import
+   info • The private field _scheduledTrips could be 'final' • lib/screens/create_trip_screen.dart:55:29 • prefer_final_fields
+   info • 'desiredAccuracy' is deprecated and shouldn't be used. use settings parameter with AndroidSettings, AppleSettings, WebSettings, or LocationSettings • lib/screens/create_trip_screen.dart:109:9 • deprecated_member_use
+   info • 'timeLimit' is deprecated and shouldn't be used. use settings parameter with AndroidSettings, AppleSettings, WebSettings, or LocationSettings • lib/screens/create_trip_screen.dart:110:9 • deprecated_member_use
+warning • The declaration '_manualLocationRefresh' isn't referenced • lib/screens/create_trip_screen.dart:152:16 • unused_element
+   info • Don't use 'BuildContext's across async gaps • lib/screens/create_trip_screen.dart:194:54 • use_build_context_synchronously
+   info • 'desiredAccuracy' is deprecated and shouldn't be used. use settings parameter with AndroidSettings, AppleSettings, WebSettings, or LocationSettings • lib/screens/create_trip_screen.dart:211:11 • deprecated_member_use
+   info • 'timeLimit' is deprecated and shouldn't be used. use settings parameter with AndroidSettings, AppleSettings, WebSettings, or LocationSettings • lib/screens/create_trip_screen.dart:212:11 • deprecated_member_use
+   info • Don't use 'BuildContext's across async gaps • lib/screens/create_trip_screen.dart:239:54 • use_build_context_synchronously
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/create_trip_screen.dart:396:56 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/create_trip_screen.dart:422:56 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/create_trip_screen.dart:505:54 • deprecated_member_use
+  error • The argument type 'BorderSide' can't be assigned to the parameter type 'BoxBorder?'.  • lib/screens/create_trip_screen.dart:566:25 • argument_type_not_assignable
+  error • The argument type 'BorderSide' can't be assigned to the parameter type 'BoxBorder?'.  • lib/screens/create_trip_screen.dart:594:23 • argument_type_not_assignable
+  error • The argument type 'BorderSide' can't be assigned to the parameter type 'BoxBorder?'.  • lib/screens/create_trip_screen.dart:646:21 • argument_type_not_assignable
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/create_trip_screen.dart:693:61 • deprecated_member_use
+  error • The argument type 'BorderSide' can't be assigned to the parameter type 'BoxBorder?'.  • lib/screens/create_trip_screen.dart:694:27 • argument_type_not_assignable
+  error • The argument type 'BorderSide' can't be assigned to the parameter type 'BoxBorder?'.  • lib/screens/create_trip_screen.dart:740:23 • argument_type_not_assignable
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/screens/create_trip_screen.dart:741:57 • deprecated_member_use
+
