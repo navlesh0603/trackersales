@@ -45,7 +45,10 @@ class _FutureTripsScreenState extends State<FutureTripsScreen> {
   Future<void> _fetchCalendarTrips() async {
     final user = Provider.of<AuthProvider>(context, listen: false).user;
     if (user != null) {
-      await Provider.of<TripProvider>(context, listen: false).fetchTrips(user.systemUserId);
+      await Provider.of<TripProvider>(
+        context,
+        listen: false,
+      ).fetchTrips(user.systemUserId);
     }
   }
 
@@ -54,7 +57,10 @@ class _FutureTripsScreenState extends State<FutureTripsScreen> {
     if (user == null) return;
 
     setState(() => _isLoadingPlans = true);
-    final result = await Provider.of<TripProvider>(context, listen: false).getPlans(user.systemUserId);
+    final result = await Provider.of<TripProvider>(
+      context,
+      listen: false,
+    ).getPlans(user.systemUserId);
     if (mounted) {
       setState(() {
         if (result['success']) {
@@ -71,7 +77,10 @@ class _FutureTripsScreenState extends State<FutureTripsScreen> {
     final user = Provider.of<AuthProvider>(context, listen: false).user;
     if (user == null) return;
 
-    final result = await Provider.of<TripProvider>(context, listen: false).getTripsByPlan(user.systemUserId, plansId);
+    final result = await Provider.of<TripProvider>(
+      context,
+      listen: false,
+    ).getTripsByPlan(user.systemUserId, plansId);
     if (mounted && result['success']) {
       setState(() {
         _planTrips[plansId] = List.from(result['data'].reversed);
@@ -108,27 +117,30 @@ class _FutureTripsScreenState extends State<FutureTripsScreen> {
           Navigator.pushNamed(context, '/tracking');
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['message'])));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(res['message'])));
       }
     }
   }
 
   List<dynamic> _getCalendarEvents(DateTime day, List<Trip> historyTrips) {
     List<dynamic> items = <dynamic>[];
-    
+
     // Get plans for this day
     final dayStr = DateFormat('dd/MM/yyyy').format(day);
     final dayPlans = _plans.where((p) => p['date'] == dayStr).toList();
-    
+
     for (var plan in dayPlans) {
       items.add({
         ...plan,
         'isPlan': true,
         'plan_id': plan['plans_id'], // Ensuring plan_id is also there
-        'status': plan['approval_approved'] ?? "Pending",
+        // Use backend "status" field directly (NEW / APPROVED / NOT REQUIRED)
+        'status': (plan['status'] ?? '').toString(),
       });
     }
-    
+
     return items;
   }
 
@@ -147,12 +159,12 @@ class _FutureTripsScreenState extends State<FutureTripsScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         foregroundColor: Colors.black,
-        leading: Navigator.canPop(context) 
-          ? IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded),
-              onPressed: () => Navigator.pop(context),
-            )
-          : null,
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                onPressed: () => Navigator.pop(context),
+              )
+            : null,
       ),
       body: Column(
         children: [
@@ -160,8 +172,8 @@ class _FutureTripsScreenState extends State<FutureTripsScreen> {
           Expanded(
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),
-              child: _activeTabIndex == 0 
-                  ? Center(child: _buildCalendarView(tripProvider)) 
+              child: _activeTabIndex == 0
+                  ? Center(child: _buildCalendarView(tripProvider))
                   : Center(child: _buildPlansView()),
             ),
           ),
@@ -184,7 +196,9 @@ class _FutureTripsScreenState extends State<FutureTripsScreen> {
           AnimatedAlign(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOutExpo,
-            alignment: _activeTabIndex == 0 ? Alignment.centerLeft : Alignment.centerRight,
+            alignment: _activeTabIndex == 0
+                ? Alignment.centerLeft
+                : Alignment.centerRight,
             child: FractionallySizedBox(
               widthFactor: 0.5,
               child: Container(
@@ -192,7 +206,11 @@ class _FutureTripsScreenState extends State<FutureTripsScreen> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
                   ],
                 ),
               ),
@@ -221,7 +239,11 @@ class _FutureTripsScreenState extends State<FutureTripsScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 18, color: isActive ? Colors.black : Colors.grey[500]),
+              Icon(
+                icon,
+                size: 18,
+                color: isActive ? Colors.black : Colors.grey[500],
+              ),
               const SizedBox(width: 8),
               Text(
                 label,
@@ -239,7 +261,10 @@ class _FutureTripsScreenState extends State<FutureTripsScreen> {
   }
 
   Widget _buildCalendarView(TripProvider tripProvider) {
-    final activities = _getCalendarEvents(_selectedDay ?? _focusedDay, tripProvider.trips);
+    final activities = _getCalendarEvents(
+      _selectedDay ?? _focusedDay,
+      tripProvider.trips,
+    );
     return Column(
       key: const ValueKey(0),
       mainAxisAlignment: MainAxisAlignment.center,
@@ -250,7 +275,13 @@ class _FutureTripsScreenState extends State<FutureTripsScreen> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(color: Colors.grey[100]!),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 20, offset: const Offset(0, 10))],
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
           child: TableCalendar<dynamic>(
             firstDay: DateTime.now().subtract(const Duration(days: 365)),
@@ -261,11 +292,20 @@ class _FutureTripsScreenState extends State<FutureTripsScreen> {
             headerStyle: HeaderStyle(
               formatButtonVisible: false,
               titleCentered: true,
-              titleTextStyle: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold),
+              titleTextStyle: GoogleFonts.outfit(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             calendarStyle: CalendarStyle(
-              selectedDecoration: const BoxDecoration(color: Colors.black, shape: BoxShape.circle),
-              todayDecoration: BoxDecoration(color: Colors.grey[200], shape: BoxShape.circle),
+              selectedDecoration: const BoxDecoration(
+                color: Colors.black,
+                shape: BoxShape.circle,
+              ),
+              todayDecoration: BoxDecoration(
+                color: Colors.grey[200],
+                shape: BoxShape.circle,
+              ),
               defaultTextStyle: GoogleFonts.outfit(),
               weekendTextStyle: GoogleFonts.outfit(color: Colors.red[300]),
             ),
@@ -316,12 +356,13 @@ class _FutureTripsScreenState extends State<FutureTripsScreen> {
             child: _isLoadingPlans
                 ? const Center(child: CircularProgressIndicator())
                 : _plans.isEmpty
-                    ? _buildEmptyState("You haven't created any plans yet.")
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(24),
-                        itemCount: _plans.length,
-                        itemBuilder: (context, index) => _buildPlanCard(_plans[index]),
-                      ),
+                ? _buildEmptyState("You haven't created any plans yet.")
+                : ListView.builder(
+                    padding: const EdgeInsets.all(24),
+                    itemCount: _plans.length,
+                    itemBuilder: (context, index) =>
+                        _buildPlanCard(_plans[index]),
+                  ),
           ),
         ),
       ],
@@ -329,8 +370,12 @@ class _FutureTripsScreenState extends State<FutureTripsScreen> {
   }
 
   Widget _buildPlanCard(dynamic plan) {
-    bool isApproved = plan['approval_approved'] == "1" || plan['approval_approved'] == "Approved";
-    bool needsApp = plan['approval_required'] == "Yes";
+    final String rawStatus = (plan['status'] ?? '').toString().toUpperCase();
+    final bool needsApp = plan['approval_required'] == "Yes";
+
+    // Consider NOT REQUIRED effectively "approved" from a start‑permission POV.
+    final bool isApproved =
+        rawStatus == "APPROVED" || rawStatus == "NOT REQUIRED";
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -353,10 +398,13 @@ class _FutureTripsScreenState extends State<FutureTripsScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => PlanTripsScreen(plan: {
-                  ...plan,
-                  'status': plan['approval_approved'], // Normalizing for the other screen
-                }),
+                builder: (context) => PlanTripsScreen(
+                  plan: {
+                    ...plan,
+                    // Pass through the backend status string ("NEW", "APPROVED", etc.)
+                    'status': plan['status'],
+                  },
+                ),
               ),
             );
           },
@@ -372,30 +420,51 @@ class _FutureTripsScreenState extends State<FutureTripsScreen> {
                     Expanded(
                       child: Text(
                         plan['name'] ?? "Untitled Plan",
-                        style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18),
+                        style: GoogleFonts.outfit(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     _statusBadge(
-                      needsApp ? (isApproved ? "Approved" : "Pending Approval") : "Scheduled",
-                      needsApp ? (isApproved ? Colors.green : Colors.orange) : Colors.blue,
+                      needsApp
+                          ? (isApproved ? "Approved" : "Pending Approval")
+                          : "Scheduled",
+                      needsApp
+                          ? (isApproved ? Colors.green : Colors.orange)
+                          : Colors.blue,
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Icon(Icons.calendar_today_rounded, size: 14, color: Colors.grey[400]),
+                    Icon(
+                      Icons.calendar_today_rounded,
+                      size: 14,
+                      color: Colors.grey[400],
+                    ),
                     const SizedBox(width: 6),
-                    Text(plan['date'] ?? "No Date", style: GoogleFonts.outfit(color: Colors.grey[500], fontSize: 13)),
+                    Text(
+                      plan['date'] ?? "No Date",
+                      style: GoogleFonts.outfit(
+                        color: Colors.grey[500],
+                        fontSize: 13,
+                      ),
+                    ),
                   ],
                 ),
-                if (plan['description'] != null && plan['description'].toString().isNotEmpty) ...[
+                if (plan['description'] != null &&
+                    plan['description'].toString().isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Text(
                     plan['description'],
-                    style: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 13),
+                    style: GoogleFonts.outfit(
+                      color: Colors.grey[400],
+                      fontSize: 13,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -404,8 +473,19 @@ class _FutureTripsScreenState extends State<FutureTripsScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text("View Plan Trips", style: GoogleFonts.outfit(color: Colors.blue, fontWeight: FontWeight.w600, fontSize: 13)),
-                    const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Colors.blue),
+                    Text(
+                      "View Plan Trips",
+                      style: GoogleFonts.outfit(
+                        color: Colors.blue,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 12,
+                      color: Colors.blue,
+                    ),
                   ],
                 ),
               ],
@@ -418,14 +498,20 @@ class _FutureTripsScreenState extends State<FutureTripsScreen> {
 
   Widget _buildPlanTripsList(int planId) {
     if (!_planTrips.containsKey(planId)) {
-      return const Padding(padding: EdgeInsets.all(20), child: Center(child: CircularProgressIndicator(strokeWidth: 2)));
+      return const Padding(
+        padding: EdgeInsets.all(20),
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      );
     }
 
     final trips = _planTrips[planId]!;
     if (trips.isEmpty) {
       return Padding(
         padding: const EdgeInsets.all(20),
-        child: Text("No trips added to this plan", style: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 13)),
+        child: Text(
+          "No trips added to this plan",
+          style: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 13),
+        ),
       );
     }
 
@@ -452,16 +538,43 @@ class _FutureTripsScreenState extends State<FutureTripsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(trip['from_location'] ?? "From", style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w500)),
+                    Text(
+                      trip['from_location'] ?? "From",
+                      style: GoogleFonts.outfit(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                     const SizedBox(height: 4),
-                    Text(trip['to_location'] ?? "To", style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w500)),
-                    if (trip['purpose_of_visit'] != null && trip['purpose_of_visit'].toString().isNotEmpty) ...[
+                    Text(
+                      trip['to_location'] ?? "To",
+                      style: GoogleFonts.outfit(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    if (trip['purpose_of_visit'] != null &&
+                        trip['purpose_of_visit'].toString().isNotEmpty) ...[
                       const SizedBox(height: 6),
-                      Text("Purpose: ${trip['purpose_of_visit']}", style: GoogleFonts.outfit(fontSize: 12, color: Colors.blueGrey, fontWeight: FontWeight.w500)),
+                      Text(
+                        "Purpose: ${trip['purpose_of_visit']}",
+                        style: GoogleFonts.outfit(
+                          fontSize: 12,
+                          color: Colors.blueGrey,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                     ],
-                    if (trip['notes'] != null && trip['notes'].toString().isNotEmpty) ...[
+                    if (trip['notes'] != null &&
+                        trip['notes'].toString().isNotEmpty) ...[
                       const SizedBox(height: 2),
-                      Text("Notes: ${trip['notes']}", style: GoogleFonts.outfit(fontSize: 11, color: Colors.grey[500])),
+                      Text(
+                        "Notes: ${trip['notes']}",
+                        style: GoogleFonts.outfit(
+                          fontSize: 11,
+                          color: Colors.grey[500],
+                        ),
+                      ),
                     ],
                   ],
                 ),
@@ -474,13 +587,21 @@ class _FutureTripsScreenState extends State<FutureTripsScreen> {
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     minimumSize: const Size(0, 32),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     elevation: 0,
                   ),
-                  child: const Text("Start", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    "Start",
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
                 )
               else
-                _statusBadge(trip['trip_status'], _getStatusColor(trip['trip_status'])),
+                _statusBadge(
+                  trip['trip_status'],
+                  _getStatusColor(trip['trip_status']),
+                ),
             ],
           ),
         );
@@ -496,28 +617,51 @@ class _FutureTripsScreenState extends State<FutureTripsScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.grey[100]!),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10),
+        ],
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: Colors.orange[50], shape: BoxShape.circle),
-            child: Icon(Icons.event_note_rounded, color: Colors.orange[400], size: 20),
+            decoration: BoxDecoration(
+              color: Colors.orange[50],
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.event_note_rounded,
+              color: Colors.orange[400],
+              size: 20,
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(plan['name'] ?? "Plan", style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15)),
-                Text(plan['description'] ?? "No description", style: GoogleFonts.outfit(color: Colors.grey[500], fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(
+                  plan['name'] ?? "Plan",
+                  style: GoogleFonts.outfit(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+                Text(
+                  plan['description'] ?? "No description",
+                  style: GoogleFonts.outfit(
+                    color: Colors.grey[500],
+                    fontSize: 12,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
           TextButton(
             onPressed: () {
-               Navigator.push(
+              Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) => PlanTripsScreen(plan: plan),
@@ -534,17 +678,31 @@ class _FutureTripsScreenState extends State<FutureTripsScreen> {
   Widget _statusBadge(String status, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-      child: Text(status, style: GoogleFonts.outfit(color: color, fontSize: 10, fontWeight: FontWeight.bold)),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        status,
+        style: GoogleFonts.outfit(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 
   Color _getStatusColor(String status) {
     switch (status) {
-      case "Started": return Colors.blue;
-      case "Completed": return Colors.green;
-      case "Scheduled": return Colors.orange;
-      default: return Colors.grey;
+      case "Started":
+        return Colors.blue;
+      case "Completed":
+        return Colors.green;
+      case "Scheduled":
+        return Colors.orange;
+      default:
+        return Colors.grey;
     }
   }
 
@@ -555,7 +713,10 @@ class _FutureTripsScreenState extends State<FutureTripsScreen> {
         children: [
           Icon(Icons.event_busy_rounded, size: 64, color: Colors.grey[100]),
           const SizedBox(height: 16),
-          Text(message, style: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 14)),
+          Text(
+            message,
+            style: GoogleFonts.outfit(color: Colors.grey[400], fontSize: 14),
+          ),
         ],
       ),
     );
@@ -563,7 +724,10 @@ class _FutureTripsScreenState extends State<FutureTripsScreen> {
 
   Widget _tripItem(BuildContext context, Trip trip) {
     return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => TripDetailScreen(trip: trip))),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => TripDetailScreen(trip: trip)),
+      ),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
@@ -578,10 +742,27 @@ class _FutureTripsScreenState extends State<FutureTripsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(trip.title, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87), maxLines: 1),
+                  Text(
+                    trip.title,
+                    style: GoogleFonts.outfit(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: Colors.black87,
+                    ),
+                    maxLines: 1,
+                  ),
                   const SizedBox(height: 4),
-                  Text(trip.startAddress.isNotEmpty ? trip.startAddress : "Location not set", 
-                    style: GoogleFonts.outfit(color: Colors.grey[500], fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(
+                    trip.startAddress.isNotEmpty
+                        ? trip.startAddress
+                        : "Location not set",
+                    style: GoogleFonts.outfit(
+                      color: Colors.grey[500],
+                      fontSize: 12,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
               ),
             ),

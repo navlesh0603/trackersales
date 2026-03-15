@@ -28,7 +28,7 @@ android {
         applicationId = "com.vunya.salestracker"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 21  // Required for background services
+        minSdk = flutter.minSdkVersion  // Required for background services
         targetSdk = 35  // Android 15 support
         versionCode = flutter.versionCode
         versionName = flutter.versionName

@@ -22,10 +22,10 @@ class EndTripScreen extends StatefulWidget {
 class _EndTripScreenState extends State<EndTripScreen> {
   final _formKey = GlobalKey<FormState>();
   final _notesController = TextEditingController();
-  
+
   List<dynamic> _expenseTypes = [];
   final List<Map<String, dynamic>> _addedExpenses = [];
-  
+
   String? _selectedExpenseTypeId;
   final _expenseAmountController = TextEditingController();
   bool _isLoadingExpenses = true;
@@ -59,14 +59,17 @@ class _EndTripScreenState extends State<EndTripScreen> {
   }
 
   void _addExpense() {
-    if (_selectedExpenseTypeId != null && _expenseAmountController.text.isNotEmpty) {
-      final type = _expenseTypes.firstWhere((e) => e['expense_type_id'].toString() == _selectedExpenseTypeId);
-      
+    if (_selectedExpenseTypeId != null &&
+        _expenseAmountController.text.isNotEmpty) {
+      final type = _expenseTypes.firstWhere(
+        (e) => e['expense_type_id'].toString() == _selectedExpenseTypeId,
+      );
+
       setState(() {
         _addedExpenses.add({
           "expense_type_id": _selectedExpenseTypeId,
           "expense_name": type['name'],
-          "amount": _expenseAmountController.text.trim()
+          "amount": _expenseAmountController.text.trim(),
         });
         _selectedExpenseTypeId = null;
         _expenseAmountController.clear();
@@ -92,7 +95,10 @@ class _EndTripScreenState extends State<EndTripScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text("Complete Trip", style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+        title: Text(
+          "Complete Trip",
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Colors.white,
         elevation: 0,
         foregroundColor: Colors.black,
@@ -122,45 +128,93 @@ class _EndTripScreenState extends State<EndTripScreen> {
                         ),
                         child: Row(
                           children: [
-                            _statItem("Distance", "${widget.distanceKm.toStringAsFixed(2)} km", Icons.route_rounded, Colors.blue),
-                            Container(width: 1, height: 40, color: Colors.grey[200], margin: const EdgeInsets.symmetric(horizontal: 20)),
-                            _statItem("Duration", widget.durationStr, Icons.timer_rounded, Colors.orange),
+                            _statItem(
+                              "Distance",
+                              "${widget.distanceKm.toStringAsFixed(2)} km",
+                              Icons.route_rounded,
+                              Colors.blue,
+                            ),
+                            Container(
+                              width: 1,
+                              height: 40,
+                              color: Colors.grey[200],
+                              margin: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                              ),
+                            ),
+                            _statItem(
+                              "Duration",
+                              widget.durationStr,
+                              Icons.timer_rounded,
+                              Colors.orange,
+                            ),
                           ],
                         ),
                       ),
-                      
-                      const SizedBox(height: 32),
-                      Text("PURPOSE OF VISIT / NOTES *", style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey[500], letterSpacing: 1)),
-                      const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _notesController,
-                        maxLines: 3,
-                        decoration: InputDecoration(
-                          hintText: "Enter trip details (Mandatory)",
-                          filled: true,
-                          fillColor: Colors.grey[50],
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                          contentPadding: const EdgeInsets.all(16),
-                        ),
-                        validator: (value) => value == null || value.trim().isEmpty ? "Notes are required" : null,
-                      ),
 
                       const SizedBox(height: 32),
-                      Text("EXPENSES (OPTIONAL)", style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey[500], letterSpacing: 1)),
-                      const SizedBox(height: 12),
-                      
-                      if (_isLoadingExpenses)
-                        const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
-                      else ...[
-                        _buildExpenseInputs(),
-                        const SizedBox(height: 16),
-                        _buildExpenseList(),
-                      ],
+                      // NOTE: Purpose/notes and expenses UI have been disabled
+                      // because the current backend EndTrip API does not require
+                      // these parameters. Leaving this section commented so it
+                      // can be restored easily if needed in the future.
+                      //
+                      // Text(
+                      //   "PURPOSE OF VISIT / NOTES *",
+                      //   style: GoogleFonts.outfit(
+                      //     fontSize: 12,
+                      //     fontWeight: FontWeight.bold,
+                      //     color: Colors.grey[500],
+                      //     letterSpacing: 1,
+                      //   ),
+                      // ),
+                      // const SizedBox(height: 12),
+                      // TextFormField(
+                      //   controller: _notesController,
+                      //   maxLines: 3,
+                      //   decoration: InputDecoration(
+                      //     hintText: "Enter trip details (Mandatory)",
+                      //     filled: true,
+                      //     fillColor: Colors.grey[50],
+                      //     border: OutlineInputBorder(
+                      //       borderRadius: BorderRadius.circular(16),
+                      //       borderSide: BorderSide.none,
+                      //     ),
+                      //     contentPadding: const EdgeInsets.all(16),
+                      //   ),
+                      //   validator: (value) =>
+                      //       value == null || value.trim().isEmpty
+                      //       ? "Notes are required"
+                      //       : null,
+                      // ),
+                      //
+                      // const SizedBox(height: 32),
+                      // Text(
+                      //   "EXPENSES (OPTIONAL)",
+                      //   style: GoogleFonts.outfit(
+                      //     fontSize: 12,
+                      //     fontWeight: FontWeight.bold,
+                      //     color: Colors.grey[500],
+                      //     letterSpacing: 1,
+                      //   ),
+                      // ),
+                      // const SizedBox(height: 12),
+                      // if (_isLoadingExpenses)
+                      //   const Center(
+                      //     child: Padding(
+                      //       padding: EdgeInsets.all(20),
+                      //       child: CircularProgressIndicator(),
+                      //     ),
+                      //   )
+                      // else ...[
+                      //   _buildExpenseInputs(),
+                      //   const SizedBox(height: 16),
+                      //   _buildExpenseList(),
+                      // ],
                     ],
                   ),
                 ),
               ),
-              
+
               // Bottom Action Button
               Padding(
                 padding: const EdgeInsets.all(24),
@@ -171,10 +225,19 @@ class _EndTripScreenState extends State<EndTripScreen> {
                     onPressed: _submit,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       elevation: 0,
                     ),
-                    child: Text("Finish Trip", style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+                    child: Text(
+                      "Finish Trip",
+                      style: GoogleFonts.outfit(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -194,11 +257,23 @@ class _EndTripScreenState extends State<EndTripScreen> {
             children: [
               Icon(icon, size: 14, color: color),
               const SizedBox(width: 4),
-              Text(label, style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey[500])),
+              Text(
+                label,
+                style: GoogleFonts.outfit(
+                  fontSize: 12,
+                  color: Colors.grey[500],
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 4),
-          Text(value, style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(
+            value,
+            style: GoogleFonts.outfit(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
         ],
       ),
     );
@@ -218,7 +293,10 @@ class _EndTripScreenState extends State<EndTripScreen> {
             isExpanded: true,
             value: _selectedExpenseTypeId,
             hint: const Text("Select Expense Type"),
-            decoration: const InputDecoration(border: InputBorder.none, contentPadding: EdgeInsets.zero),
+            decoration: const InputDecoration(
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.zero,
+            ),
             items: _expenseTypes.map((e) {
               return DropdownMenuItem<String>(
                 value: e['expense_type_id'].toString(),
@@ -234,12 +312,20 @@ class _EndTripScreenState extends State<EndTripScreen> {
                 child: TextFormField(
                   controller: _expenseAmountController,
                   keyboardType: TextInputType.number,
-                  decoration: const InputDecoration(hintText: "Enter Amount", border: InputBorder.none, prefixText: "₹ "),
+                  decoration: const InputDecoration(
+                    hintText: "Enter Amount",
+                    border: InputBorder.none,
+                    prefixText: "₹ ",
+                  ),
                 ),
               ),
               IconButton(
                 onPressed: _addExpense,
-                icon: const Icon(Icons.add_circle_rounded, color: Colors.black, size: 32),
+                icon: const Icon(
+                  Icons.add_circle_rounded,
+                  color: Colors.black,
+                  size: 32,
+                ),
               ),
             ],
           ),
@@ -265,13 +351,28 @@ class _EndTripScreenState extends State<EndTripScreen> {
           ),
           child: Row(
             children: [
-              Expanded(child: Text(exp['expense_name'], style: GoogleFonts.outfit(fontWeight: FontWeight.w600))),
-              Text("₹${exp['amount']}", style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.green[700])),
+              Expanded(
+                child: Text(
+                  exp['expense_name'],
+                  style: GoogleFonts.outfit(fontWeight: FontWeight.w600),
+                ),
+              ),
+              Text(
+                "₹${exp['amount']}",
+                style: GoogleFonts.outfit(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green[700],
+                ),
+              ),
               const SizedBox(width: 8),
               IconButton(
                 visualDensity: VisualDensity.compact,
                 onPressed: () => _removeExpense(i),
-                icon: const Icon(Icons.remove_circle_outline_rounded, color: Colors.red, size: 20),
+                icon: const Icon(
+                  Icons.remove_circle_outline_rounded,
+                  color: Colors.red,
+                  size: 20,
+                ),
               ),
             ],
           ),
@@ -281,20 +382,13 @@ class _EndTripScreenState extends State<EndTripScreen> {
   }
 
   void _submit() {
-    if (_formKey.currentState!.validate()) {
-      if (_selectedExpenseTypeId != null && _expenseAmountController.text.isNotEmpty) {
-        _addExpense();
-      }
-
-      final List<Map<String, dynamic>> formattedExpenses = _addedExpenses.map<Map<String, dynamic>>((e) => {
-        "expense_type_id": e["expense_type_id"].toString(),
-        "amount": e["amount"].toString()
-      }).toList();
-      
-      Navigator.pop(context, {
-        'notes': _notesController.text.trim(),
-        'expenses': formattedExpenses
-      });
-    }
+    // Notes and expenses are no longer collected from the user because
+    // the EndTrip API only requires system_user_id, trips_id and kilometer.
+    // Keep returning a consistent payload shape so the rest of the flow
+    // (TripTrackingScreen -> TripProvider -> TripService) continues to work.
+    Navigator.pop(context, {
+      'notes': '',
+      'expenses': <Map<String, dynamic>>[],
+    });
   }
 }

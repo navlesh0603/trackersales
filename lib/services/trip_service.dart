@@ -386,7 +386,7 @@ class TripService {
   }
 
   /// Schedule Trip APIs
-  
+
   Future<Map<String, dynamic>> createPlan({
     required int systemUserId,
     required String name,
@@ -408,12 +408,15 @@ class TripService {
 
       if (response.statusCode == 200) {
         final dynamic data = json.decode(response.body);
-        if (data != null && data['data'] != null && (data['data'] as List).isNotEmpty) {
-           return {
-             'success': true,
-             'plans_id': data['data'][0]['plans_id'],
-             'message': data['data'][0]['message'] ?? 'Plan created successfully'
-           };
+        if (data != null &&
+            data['data'] != null &&
+            (data['data'] as List).isNotEmpty) {
+          return {
+            'success': true,
+            'plans_id': data['data'][0]['plans_id'],
+            'message':
+                data['data'][0]['message'] ?? 'Plan created successfully',
+          };
         }
         return {'success': false, 'message': 'Invalid response from server'};
       }
@@ -452,12 +455,15 @@ class TripService {
 
       if (response.statusCode == 200) {
         final dynamic data = json.decode(response.body);
-        if (data != null && data['data'] != null && (data['data'] as List).isNotEmpty) {
-           return {
-             'success': true,
-             'trips_id': data['data'][0]['trips_id'],
-             'message': data['data'][0]['message'] ?? 'Trip scheduled successfully'
-           };
+        if (data != null &&
+            data['data'] != null &&
+            (data['data'] as List).isNotEmpty) {
+          return {
+            'success': true,
+            'trips_id': data['data'][0]['trips_id'],
+            'message':
+                data['data'][0]['message'] ?? 'Trip scheduled successfully',
+          };
         }
         return {'success': false, 'message': 'Invalid response from server'};
       }
@@ -482,7 +488,10 @@ class TripService {
 
       if (response.statusCode == 200) {
         final dynamic data = json.decode(response.body);
-        return {'success': true, 'message': data['message'] ?? 'Plan submitted successfully'};
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Plan submitted successfully',
+        };
       }
       return {'success': false, 'message': 'API error: ${response.statusCode}'};
     } catch (e) {
@@ -492,7 +501,9 @@ class TripService {
 
   Future<Map<String, dynamic>> getPlans(int systemUserId) async {
     try {
-      final url = Uri.parse('$_baseUrl/GetPlansApi.htm?system_user_id=$systemUserId');
+      final url = Uri.parse(
+        '$_baseUrl/GetPlansApi.htm?system_user_id=$systemUserId',
+      );
       final response = await http.get(url).timeout(_timeout);
 
       if (response.statusCode == 200) {
@@ -508,9 +519,14 @@ class TripService {
     }
   }
 
-  Future<Map<String, dynamic>> getTripsByPlan(int systemUserId, int plansId) async {
+  Future<Map<String, dynamic>> getTripsByPlan(
+    int systemUserId,
+    int plansId,
+  ) async {
     try {
-      final url = Uri.parse('$_baseUrl/GetTripsByPlansApi.htm?system_user_id=$systemUserId&plans_id=$plansId');
+      final url = Uri.parse(
+        '$_baseUrl/GetTripsByPlansApi.htm?system_user_id=$systemUserId&plans_id=$plansId',
+      );
       final response = await http.get(url).timeout(_timeout);
 
       if (response.statusCode == 200) {
@@ -526,22 +542,31 @@ class TripService {
     }
   }
 
-  Future<Map<String, dynamic>> startScheduledTrip(int systemUserId, int tripsId) async {
+  Future<Map<String, dynamic>> startScheduledTrip(
+    int systemUserId,
+    int tripsId,
+  ) async {
     try {
-      final url = Uri.parse('$_baseUrl/StartScheduledTripApi.htm?system_user_id=$systemUserId&trips_id=$tripsId');
+      final url = Uri.parse(
+        '$_baseUrl/StartScheduledTripApi.htm?system_user_id=$systemUserId&trips_id=$tripsId',
+      );
       final response = await http.get(url).timeout(_timeout);
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
         if (data['data'] != null && (data['data'] as List).isNotEmpty) {
-           return {
-             'success': true, 
-             'message': data['message'] ?? 'Trip started',
-             'trips_id': data['data'][0]['trips_id'] // Return trips_id explicitly for local state tracking
-           };
+          return {
+            'success': true,
+            'message': data['message'] ?? 'Trip started',
+            'trips_id':
+                data['data'][0]['trips_id'], // Return trips_id explicitly for local state tracking
+          };
         }
         // Handle direct success messages if data list is empty but status is 200
-        return {'success': true, 'message': data['message'] ?? 'Trip started successfully'};
+        return {
+          'success': true,
+          'message': data['message'] ?? 'Trip started successfully',
+        };
       }
       return {'success': false, 'message': 'Error: ${response.statusCode}'};
     } catch (e) {
@@ -571,14 +596,14 @@ class TripService {
       if (response.statusCode == 200) {
         final dynamic data = json.decode(response.body);
         if (data is Map<String, dynamic> && data['data'] != null) {
-          return {
-            'success': true,
-            'data': data['data'],
-          };
+          return {'success': true, 'data': data['data']};
         }
         return {'success': false, 'message': 'Invalid response from server'};
       } else {
-        return {'success': false, 'message': 'API error: ${response.statusCode}'};
+        return {
+          'success': false,
+          'message': 'API error: ${response.statusCode}',
+        };
       }
     } catch (e) {
       return {'success': false, 'message': e.toString()};

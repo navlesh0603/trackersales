@@ -19,17 +19,20 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> {
 
   @override
   void didChangeDependencies() {
+    super.didChangeDependencies();
     if (_isInit) {
+      _isInit = false;
       final user = Provider.of<AuthProvider>(context, listen: false).user;
       if (user != null) {
-        Provider.of<TripProvider>(
-          context,
-          listen: false,
-        ).fetchTrips(user.systemUserId);
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          Provider.of<TripProvider>(
+            context,
+            listen: false,
+          ).fetchTrips(user.systemUserId);
+        });
       }
-      _isInit = false;
     }
-    super.didChangeDependencies();
   }
 
   Future<void> _refreshTrips() async {
@@ -50,12 +53,12 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> {
         title: const Text("Trip History"),
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
-        leading: Navigator.canPop(context) 
-          ? IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded),
-              onPressed: () => Navigator.pop(context),
-            )
-          : null,
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                onPressed: () => Navigator.pop(context),
+              )
+            : null,
       ),
       body: Consumer<TripProvider>(
         builder: (context, tripProvider, _) {

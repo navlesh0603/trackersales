@@ -24,7 +24,6 @@ class CreateTripScreen extends StatefulWidget {
 
 class _CreateTripScreenState extends State<CreateTripScreen>
     with WidgetsBindingObserver, SingleTickerProviderStateMixin {
-  
   // UI Tabs State
   int _selectedTabIndex = 0; // 0 for Instant Trip, 1 for Schedule Trip
 
@@ -55,7 +54,7 @@ class _CreateTripScreenState extends State<CreateTripScreen>
   final _schedToController = TextEditingController();
   final _schedRemarkController = TextEditingController();
   List<Map<String, dynamic>> _scheduledTrips = []; // Added trips for the plan
-  
+
   int? _currentPlanId;
   LatLng? _schedFromLocation;
   LatLng? _schedToLocation;
@@ -98,7 +97,9 @@ class _CreateTripScreenState extends State<CreateTripScreen>
       });
     }
 
-    final hasPermissions = await PermissionUtil.checkMandatoryPermissions(context);
+    final hasPermissions = await PermissionUtil.checkMandatoryPermissions(
+      context,
+    );
     if (!hasPermissions) {
       if (mounted) {
         setState(() {
@@ -183,7 +184,7 @@ class _CreateTripScreenState extends State<CreateTripScreen>
     _noteController.dispose();
     _startAddrController.dispose();
     _endAddrController.dispose();
-    
+
     _planNameController.dispose();
     _planDescController.dispose();
     _schedFromController.dispose();
@@ -211,7 +212,9 @@ class _CreateTripScreenState extends State<CreateTripScreen>
 
   Future<void> _startInstantTrip() async {
     if (_instantFormKey.currentState!.validate()) {
-      final hasPermissions = await PermissionUtil.checkMandatoryPermissions(context);
+      final hasPermissions = await PermissionUtil.checkMandatoryPermissions(
+        context,
+      );
       if (!hasPermissions) return;
 
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -220,7 +223,10 @@ class _CreateTripScreenState extends State<CreateTripScreen>
       if (user == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('User not logged in.'), backgroundColor: Colors.red),
+            const SnackBar(
+              content: Text('User not logged in.'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
         return;
@@ -239,7 +245,10 @@ class _CreateTripScreenState extends State<CreateTripScreen>
         setState(() => _isLoading = false);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to get live location: $e.'), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text('Failed to get live location: $e.'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
         return;
@@ -270,12 +279,18 @@ class _CreateTripScreenState extends State<CreateTripScreen>
       if (mounted) {
         if (result['success']) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result['message'] ?? 'Trip started!'), backgroundColor: Colors.green),
+            SnackBar(
+              content: Text(result['message'] ?? 'Trip started!'),
+              backgroundColor: Colors.green,
+            ),
           );
           Navigator.pushReplacementNamed(context, '/tracking');
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(result['message'] ?? 'Failed to start trip'), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text(result['message'] ?? 'Failed to start trip'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       }
@@ -288,7 +303,9 @@ class _CreateTripScreenState extends State<CreateTripScreen>
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => LocationPickerScreen(title: isStart ? "Select From Point" : "Select To Point"),
+        builder: (context) => LocationPickerScreen(
+          title: isStart ? "Select From Point" : "Select To Point",
+        ),
       ),
     );
 
@@ -311,7 +328,10 @@ class _CreateTripScreenState extends State<CreateTripScreen>
     if (_planFormKey.currentState!.validate()) {
       if (_planDate == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select a plan date.'), backgroundColor: Colors.orange),
+          const SnackBar(
+            content: Text('Please select a plan date.'),
+            backgroundColor: Colors.orange,
+          ),
         );
         return;
       }
@@ -324,7 +344,7 @@ class _CreateTripScreenState extends State<CreateTripScreen>
       // Create Plan API
       String dateStr = DateFormat('dd/MM/yyyy').format(_planDate!);
       String appReqStr = _planNeedsApproval ? "Yes" : "No";
-      
+
       final res = await tripProvider.createPlan(
         systemUserId: user.systemUserId,
         name: _planNameController.text.trim(),
@@ -336,13 +356,15 @@ class _CreateTripScreenState extends State<CreateTripScreen>
       setState(() => _isLoading = false);
 
       if (res['success']) {
-         setState(() {
-           _currentPlanId = res['plans_id'];
-           _isPlanCreated = true;
-         });
+        setState(() {
+          _currentPlanId = res['plans_id'];
+          _isPlanCreated = true;
+        });
       } else {
         if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['message'])));
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(res['message'])));
         }
       }
     }
@@ -351,7 +373,13 @@ class _CreateTripScreenState extends State<CreateTripScreen>
   void _addScheduledTrip() async {
     if (_schedTripFormKey.currentState!.validate()) {
       if (_currentPlanId == null) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Plan session expired. Please restart plan creation.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Plan session expired. Please restart plan creation.',
+            ),
+          ),
+        );
         return;
       }
 
@@ -389,13 +417,19 @@ class _CreateTripScreenState extends State<CreateTripScreen>
         });
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Trip successfully added to plan!'), backgroundColor: Colors.green),
+            const SnackBar(
+              content: Text('Trip successfully added to plan!'),
+              backgroundColor: Colors.green,
+            ),
           );
         }
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error adding trip: ${res['message']}'), backgroundColor: Colors.red),
+            SnackBar(
+              content: Text('Error adding trip: ${res['message']}'),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       }
@@ -404,25 +438,22 @@ class _CreateTripScreenState extends State<CreateTripScreen>
 
   void _finishSubmittingPlan() async {
     if (_scheduledTrips.isEmpty) {
-      if (_schedFromController.text.isNotEmpty && _schedToController.text.isNotEmpty) {
+      if (_schedFromController.text.isNotEmpty &&
+          _schedToController.text.isNotEmpty) {
         // Try to add the current one first if user filled it but didn't click add
         _addScheduledTrip();
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please add at least one trip before finishing.'), backgroundColor: Colors.orange),
+        const SnackBar(
+          content: Text('Please add at least one trip before finishing.'),
+          backgroundColor: Colors.orange,
+        ),
       );
       return;
     }
 
     setState(() => _isLoading = true);
-    final user = Provider.of<AuthProvider>(context, listen: false).user;
-    final tripProvider = Provider.of<TripProvider>(context, listen: false);
-
-    // If it was marked as needing approval, send the final approval request
-    if (_planNeedsApproval) {
-       await tripProvider.submitPlanForApproval(systemUserId: user!.systemUserId, plansId: _currentPlanId!);
-    }
 
     setState(() {
       _isLoading = false;
@@ -434,25 +465,32 @@ class _CreateTripScreenState extends State<CreateTripScreen>
       _planNeedsApproval = true;
       _currentPlanId = null;
     });
-    
+
     if (mounted) {
       // Show success and move to Activity screen (Calendar/Plans)
       showDialog(
         context: context,
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: Column(
             children: [
-              const Icon(Icons.check_circle_rounded, color: Colors.green, size: 60),
+              const Icon(
+                Icons.check_circle_rounded,
+                color: Colors.green,
+                size: 60,
+              ),
               const SizedBox(height: 16),
-              Text("Plan Published", style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+              Text(
+                "Plan Published",
+                style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+              ),
             ],
           ),
-          content: Text(
-            _planNeedsApproval 
-              ? "Your plan has been submitted for approval." 
-              : "Your trips have been scheduled successfully.",
+          content: const Text(
+            "Your trips have been scheduled successfully.",
             textAlign: TextAlign.center,
           ),
           actions: [
@@ -462,17 +500,22 @@ class _CreateTripScreenState extends State<CreateTripScreen>
                 onPressed: () {
                   Navigator.of(ctx).pop();
                   Navigator.pushNamedAndRemoveUntil(
-                    context, 
-                    '/home', 
-                    (route) => false, 
-                    arguments: {'initialIndex': 1}
+                    context,
+                    '/home',
+                    (route) => false,
+                    arguments: {'initialIndex': 1},
                   );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.black,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-                child: const Text("View My Plans", style: TextStyle(color: Colors.white)),
+                child: const Text(
+                  "View My Plans",
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ),
           ],
@@ -521,7 +564,9 @@ class _CreateTripScreenState extends State<CreateTripScreen>
           AnimatedAlign(
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeInOutExpo,
-            alignment: _selectedTabIndex == 0 ? Alignment.centerLeft : Alignment.centerRight,
+            alignment: _selectedTabIndex == 0
+                ? Alignment.centerLeft
+                : Alignment.centerRight,
             child: FractionallySizedBox(
               widthFactor: 0.5,
               child: Container(
@@ -529,7 +574,11 @@ class _CreateTripScreenState extends State<CreateTripScreen>
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
                   ],
                 ),
               ),
@@ -558,7 +607,11 @@ class _CreateTripScreenState extends State<CreateTripScreen>
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 18, color: isActive ? Colors.black : Colors.grey[500]),
+              Icon(
+                icon,
+                size: 18,
+                color: isActive ? Colors.black : Colors.grey[500],
+              ),
               const SizedBox(width: 8),
               Text(
                 label,
@@ -605,8 +658,14 @@ class _CreateTripScreenState extends State<CreateTripScreen>
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
               decoration: InputDecoration(
                 hintText: "Trip Title (e.g., Client Visit)",
-                prefixIcon: const Icon(Icons.title_rounded, color: Colors.blueAccent),
-                contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                prefixIcon: const Icon(
+                  Icons.title_rounded,
+                  color: Colors.blueAccent,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 20,
+                  horizontal: 16,
+                ),
                 filled: true,
                 fillColor: Colors.white,
                 border: OutlineInputBorder(
@@ -619,7 +678,10 @@ class _CreateTripScreenState extends State<CreateTripScreen>
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
-                  borderSide: const BorderSide(color: AppTheme.primaryColor, width: 2),
+                  borderSide: const BorderSide(
+                    color: AppTheme.primaryColor,
+                    width: 2,
+                  ),
                 ),
               ),
               validator: (v) => v!.isEmpty ? "Required" : null,
@@ -630,18 +692,48 @@ class _CreateTripScreenState extends State<CreateTripScreen>
               readOnly: true,
               style: const TextStyle(fontSize: 14),
               decoration: InputDecoration(
-                hintText: _isFetchingCurrentLocation ? "Detecting location..." : "Start Point (Auto-detected)",
-                prefixIcon: const Icon(Icons.my_location_rounded, color: Colors.green),
+                hintText: _isFetchingCurrentLocation
+                    ? "Detecting location..."
+                    : "Start Point (Auto-detected)",
+                prefixIcon: const Icon(
+                  Icons.my_location_rounded,
+                  color: Colors.green,
+                ),
                 filled: true,
                 fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey[200]!)),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppTheme.primaryColor, width: 2)),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 20,
+                  horizontal: 16,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: Colors.grey[200]!),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(
+                    color: AppTheme.primaryColor,
+                    width: 2,
+                  ),
+                ),
                 suffixIcon: _isFetchingCurrentLocation
-                    ? const Padding(padding: EdgeInsets.all(14), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
+                    ? const Padding(
+                        padding: EdgeInsets.all(14),
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      )
                     : IconButton(
-                        icon: const Icon(Icons.refresh_rounded, color: Colors.blue),
+                        icon: const Icon(
+                          Icons.refresh_rounded,
+                          color: Colors.blue,
+                        ),
                         onPressed: _manualLocationRefresh,
                       ),
               ),
@@ -655,13 +747,31 @@ class _CreateTripScreenState extends State<CreateTripScreen>
               style: const TextStyle(fontSize: 14),
               decoration: InputDecoration(
                 hintText: "Where do you want to go?",
-                prefixIcon: const Icon(Icons.location_on_rounded, color: Colors.red),
+                prefixIcon: const Icon(
+                  Icons.location_on_rounded,
+                  color: Colors.red,
+                ),
                 filled: true,
                 fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey[200]!)),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppTheme.primaryColor, width: 2)),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 20,
+                  horizontal: 16,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide(color: Colors.grey[200]!),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: const BorderSide(
+                    color: AppTheme.primaryColor,
+                    width: 2,
+                  ),
+                ),
                 suffixIcon: const Icon(Icons.map_outlined, color: Colors.grey),
               ),
               validator: (v) => v!.isEmpty ? "Destination required" : null,
@@ -684,14 +794,23 @@ class _CreateTripScreenState extends State<CreateTripScreen>
                     ? const SizedBox(
                         height: 24,
                         width: 24,
-                        child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Colors.white,
+                        ),
                       )
                     : const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(Icons.play_arrow_rounded, size: 28),
                           SizedBox(width: 8),
-                          Text("Start Tracking Now", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          Text(
+                            "Start Tracking Now",
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ],
                       ),
               ),
@@ -743,7 +862,10 @@ class _CreateTripScreenState extends State<CreateTripScreen>
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.calendar_month_rounded, color: Colors.blueAccent),
+                  const Icon(
+                    Icons.calendar_month_rounded,
+                    color: Colors.blueAccent,
+                  ),
                   const SizedBox(width: 12),
                   Text(
                     _planDate == null
@@ -751,12 +873,20 @@ class _CreateTripScreenState extends State<CreateTripScreen>
                         : "${_planDate!.day}/${_planDate!.month}/${_planDate!.year}",
                     style: TextStyle(
                       fontSize: 16,
-                      color: _planDate == null ? Colors.grey[600] : Colors.black87,
-                      fontWeight: _planDate == null ? FontWeight.normal : FontWeight.w500,
+                      color: _planDate == null
+                          ? Colors.grey[600]
+                          : Colors.black87,
+                      fontWeight: _planDate == null
+                          ? FontWeight.normal
+                          : FontWeight.w500,
                     ),
                   ),
                   const Spacer(),
-                  const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey),
+                  const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 16,
+                    color: Colors.grey,
+                  ),
                 ],
               ),
             ),
@@ -774,9 +904,18 @@ class _CreateTripScreenState extends State<CreateTripScreen>
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.verified_user_rounded, color: Colors.orangeAccent),
+                    Icon(
+                      Icons.verified_user_rounded,
+                      color: Colors.orangeAccent,
+                    ),
                     SizedBox(width: 12),
-                    Text("Needs Approval?", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                    Text(
+                      "Needs Approval?",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ],
                 ),
                 Switch.adaptive(
@@ -798,9 +937,14 @@ class _CreateTripScreenState extends State<CreateTripScreen>
               onPressed: _submitPlan,
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 18),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
-              child: const Text("Next: Add Trips", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              child: const Text(
+                "Next: Add Trips",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
             ),
           ),
         ],
@@ -832,20 +976,35 @@ class _CreateTripScreenState extends State<CreateTripScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _planNameController.text.isNotEmpty ? _planNameController.text : "Upcoming Plan",
-                          style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold),
+                          _planNameController.text.isNotEmpty
+                              ? _planNameController.text
+                              : "Upcoming Plan",
+                          style: GoogleFonts.outfit(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                         if (_currentPlanId != null)
-                           Container(
-                             margin: const EdgeInsets.only(top: 4),
-                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                             decoration: BoxDecoration(
-                               color: Colors.black.withOpacity(0.05),
-                               borderRadius: BorderRadius.circular(6),
-                             ),
-                             child: Text("PLAN ID: $_currentPlanId", style: GoogleFonts.outfit(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-                           ),
+                          Container(
+                            margin: const EdgeInsets.only(top: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              "PLAN ID: $_currentPlanId",
+                              style: GoogleFonts.outfit(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blueGrey,
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -853,25 +1012,37 @@ class _CreateTripScreenState extends State<CreateTripScreen>
                     onTap: () => setState(() => _isPlanCreated = false),
                     child: Container(
                       padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                      child: const Icon(Icons.edit_rounded, size: 18, color: Colors.blue),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.edit_rounded,
+                        size: 18,
+                        color: Colors.blue,
+                      ),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 4),
               Text(
-                _planDate != null ? "Date: ${_planDate!.day}/${_planDate!.month}/${_planDate!.year}" : "",
+                _planDate != null
+                    ? "Date: ${_planDate!.day}/${_planDate!.month}/${_planDate!.year}"
+                    : "",
                 style: TextStyle(fontSize: 14, color: Colors.grey[700]),
               ),
             ],
           ),
         ),
         const SizedBox(height: 24),
-        
+
         // Added Trips List
         if (_scheduledTrips.isNotEmpty) ...[
-          const Text("Added Trips", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          const Text(
+            "Added Trips",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
           const SizedBox(height: 12),
           ListView.builder(
             shrinkWrap: true,
@@ -885,7 +1056,13 @@ class _CreateTripScreenState extends State<CreateTripScreen>
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(24),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15, offset: const Offset(0, 5))],
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.04),
+                      blurRadius: 15,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
                   border: Border.all(color: Colors.grey[100]!),
                 ),
                 child: Row(
@@ -893,7 +1070,11 @@ class _CreateTripScreenState extends State<CreateTripScreen>
                     Column(
                       children: [
                         const Icon(Icons.circle, size: 8, color: Colors.green),
-                        Container(height: 20, width: 1, color: Colors.grey[200]),
+                        Container(
+                          height: 20,
+                          width: 1,
+                          color: Colors.grey[200],
+                        ),
                         const Icon(Icons.square, size: 8, color: Colors.black),
                       ],
                     ),
@@ -902,13 +1083,35 @@ class _CreateTripScreenState extends State<CreateTripScreen>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text("From: ${trip['from'] ?? ""}", style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.grey[800]), maxLines: 1, overflow: TextOverflow.ellipsis),
+                          Text(
+                            "From: ${trip['from'] ?? ""}",
+                            style: GoogleFonts.outfit(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey[800],
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                           const SizedBox(height: 8),
-                          Text("To: ${trip['to'] ?? ""}", style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.grey[800]), maxLines: 1, overflow: TextOverflow.ellipsis),
+                          Text(
+                            "To: ${trip['to'] ?? ""}",
+                            style: GoogleFonts.outfit(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey[800],
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ],
                       ),
                     ),
-                    const Icon(Icons.check_circle_rounded, color: Colors.green, size: 20),
+                    const Icon(
+                      Icons.check_circle_rounded,
+                      color: Colors.green,
+                      size: 20,
+                    ),
                   ],
                 ),
               );
@@ -926,12 +1129,24 @@ class _CreateTripScreenState extends State<CreateTripScreen>
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: Colors.grey[200]!),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.02),
+                  blurRadius: 10,
+                ),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Add Location", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[800])),
+                Text(
+                  "Add Location",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey[800],
+                  ),
+                ),
                 const SizedBox(height: 16),
                 _buildRouteLocationField(
                   controller: _schedFromController,
@@ -949,10 +1164,16 @@ class _CreateTripScreenState extends State<CreateTripScreen>
                   controller: _schedRemarkController,
                   decoration: InputDecoration(
                     hintText: "Remark (if any)",
-                    prefixIcon: const Icon(Icons.chat_bubble_outline_rounded, size: 20),
+                    prefixIcon: const Icon(
+                      Icons.chat_bubble_outline_rounded,
+                      size: 20,
+                    ),
                     filled: true,
                     fillColor: Colors.grey[50],
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
                     contentPadding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                 ),
@@ -960,7 +1181,7 @@ class _CreateTripScreenState extends State<CreateTripScreen>
             ),
           ),
         ),
-        
+
         const SizedBox(height: 32),
         Row(
           children: [
@@ -969,10 +1190,18 @@ class _CreateTripScreenState extends State<CreateTripScreen>
                 onPressed: _addScheduledTrip,
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   side: const BorderSide(color: AppTheme.primaryColor),
                 ),
-                child: const Text("Add Another", style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.bold)),
+                child: const Text(
+                  "Add Another",
+                  style: TextStyle(
+                    color: AppTheme.primaryColor,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 16),
@@ -981,11 +1210,23 @@ class _CreateTripScreenState extends State<CreateTripScreen>
                 onPressed: _isLoading ? null : _finishSubmittingPlan,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                 ),
-                child: _isLoading 
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : Text(_planNeedsApproval ? "Submit for Approval" : "Submit Plan", style: const TextStyle(fontWeight: FontWeight.bold)),
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        "Submit Plan",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
               ),
             ),
           ],
@@ -995,7 +1236,13 @@ class _CreateTripScreenState extends State<CreateTripScreen>
     );
   }
 
-  Widget _buildTextField({required TextEditingController controller, required String hint, required IconData icon, int maxLines = 1, bool isRequired = true}) {
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    int maxLines = 1,
+    bool isRequired = true,
+  }) {
     return TextFormField(
       controller: controller,
       maxLines: maxLines,
@@ -1004,16 +1251,32 @@ class _CreateTripScreenState extends State<CreateTripScreen>
         prefixIcon: Icon(icon, color: Colors.grey[600]),
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey[200]!)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: AppTheme.primaryColor, width: 2)),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 16,
+          horizontal: 16,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.grey[200]!),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: AppTheme.primaryColor, width: 2),
+        ),
       ),
       validator: isRequired ? (v) => v!.isEmpty ? "Required" : null : null,
     );
   }
 
-  Widget _buildRouteLocationField({required TextEditingController controller, required String hint, required bool isStart}) {
+  Widget _buildRouteLocationField({
+    required TextEditingController controller,
+    required String hint,
+    required bool isStart,
+  }) {
     return Row(
       children: [
         Container(
@@ -1033,13 +1296,28 @@ class _CreateTripScreenState extends State<CreateTripScreen>
             onTap: () => _pickScheduleLocation(isStart),
             decoration: InputDecoration(
               hintText: hint,
-              suffixIcon: const Icon(Icons.location_on_rounded, color: Colors.blueAccent),
+              suffixIcon: const Icon(
+                Icons.location_on_rounded,
+                color: Colors.blueAccent,
+              ),
               filled: true,
               fillColor: Colors.grey[50],
-              contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[200]!)),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppTheme.primaryColor)),
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 14,
+                horizontal: 16,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey[200]!),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: AppTheme.primaryColor),
+              ),
             ),
             validator: (v) => v!.isEmpty ? "Required" : null,
           ),
@@ -1053,7 +1331,9 @@ class _CreateTripScreenState extends State<CreateTripScreen>
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: AnimatedSwitcher(
         duration: const Duration(milliseconds: 300),
-        child: _isPlanCreated ? _buildScheduleAddTripsView() : _buildSchedulePlanForm(),
+        child: _isPlanCreated
+            ? _buildScheduleAddTripsView()
+            : _buildSchedulePlanForm(),
       ),
     );
   }
@@ -1061,18 +1341,22 @@ class _CreateTripScreenState extends State<CreateTripScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50], // Slightly off-white background for Uber look
+      backgroundColor:
+          Colors.grey[50], // Slightly off-white background for Uber look
       appBar: AppBar(
-        title: Text("Create Trip", style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18)),
+        title: Text(
+          "Create Trip",
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
         backgroundColor: Colors.white,
         elevation: 0,
         foregroundColor: Colors.black,
-        leading: Navigator.canPop(context) 
-          ? IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded),
-              onPressed: () => Navigator.pop(context),
-            )
-          : null,
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                onPressed: () => Navigator.pop(context),
+              )
+            : null,
       ),
       body: SafeArea(
         child: Column(
@@ -1084,10 +1368,12 @@ class _CreateTripScreenState extends State<CreateTripScreen>
                   return SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
                     child: ConstrainedBox(
-                      constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
                       child: AnimatedSwitcher(
                         duration: const Duration(milliseconds: 300),
-                        child: _selectedTabIndex == 0 
+                        child: _selectedTabIndex == 0
                             ? Center(child: _buildInstantTripView())
                             : Center(child: _buildScheduleTripView()),
                       ),
