@@ -16,6 +16,7 @@ import 'package:trackersales/services/background_service.dart';
 import 'package:trackersales/theme/app_theme.dart';
 
 import 'package:trackersales/screens/notifications_screen.dart';
+import 'package:trackersales/screens/attendance_screen.dart';
 
 import 'package:flutter/foundation.dart';
 import 'dart:io';
@@ -76,6 +77,7 @@ class MainApp extends StatelessWidget {
             '/change_password': (context) => const ChangePasswordScreen(),
             '/forgot-password': (context) => const ForgotPasswordScreen(),
             '/notifications': (context) => const NotificationsScreen(),
+            '/attendance': (context) => const AttendanceScreen(),
           },
         );
       },

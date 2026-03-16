@@ -14,6 +14,7 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:trackersales/utils/permission_util.dart';
 import 'package:trackersales/widgets/end_trip_dialog.dart';
+import 'package:trackersales/services/attendance_service.dart';
 
 class TripDetailScreen extends StatefulWidget {
   final Trip trip;
@@ -33,6 +34,7 @@ class _TripDetailScreenState extends State<TripDetailScreen>
   Set<Polyline> _polylines = {};
   GoogleMapController? _mapController;
   final String _googleApiKey = "AIzaSyCzdKwyS3klmlBOhoJWChkd7kcFptE83yw";
+  final AttendanceService _attendanceService = AttendanceService();
 
   @override
   void initState() {
@@ -156,10 +158,28 @@ class _TripDetailScreenState extends State<TripDetailScreen>
     if (tp.activeTrip != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text("You already have a trip on. Finish your current trip then start this."),
+          content: Text(
+            "You already have a trip on. Finish your current trip then start this.",
+          ),
           backgroundColor: Colors.orange,
-        )
+        ),
       );
+      return;
+    }
+
+    // Attendance guard: must be punched in
+    final statusRes = await _attendanceService.getLastPunchStatus(
+      ap.user!.systemUserId,
+    );
+    if (statusRes['success'] == true && (statusRes['isClockedIn'] != true)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please punch in before starting a trip.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
       return;
     }
 
@@ -183,9 +203,15 @@ class _TripDetailScreenState extends State<TripDetailScreen>
     if (mounted) {
       Navigator.pop(context); // Pop loading
       if (res['success']) {
-        Navigator.pushNamedAndRemoveUntil(context, '/tracking', (route) => false);
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/tracking',
+          (route) => false,
+        );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['message'])));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(res['message'])));
       }
     }
   }
@@ -361,7 +387,9 @@ class _TripDetailScreenState extends State<TripDetailScreen>
       barrierDismissible: false,
       builder: (context) => EndTripDialog(
         distanceKm: _trip.distanceKm,
-        durationStr: _formatDuration(DateTime.now().difference(_trip.startTime)),
+        durationStr: _formatDuration(
+          DateTime.now().difference(_trip.startTime),
+        ),
       ),
     );
 
@@ -424,8 +452,6 @@ class _TripDetailScreenState extends State<TripDetailScreen>
       }
     }
   }
-
-
 
   List<LatLng> _decodePolyline(String poly) {
     var list = poly.codeUnits;
@@ -538,27 +564,52 @@ class _TripDetailScreenState extends State<TripDetailScreen>
                                   ),
                                 ),
                               ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: _trip.isActive
-                                      ? Colors.orange[50]
-                                      : Colors.green[50],
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Text(
-                                  _trip.isActive ? "ACTIVE" : "COMPLETED",
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: _trip.isActive
-                                        ? Colors.orange[800]
-                                        : Colors.green[800],
-                                  ),
-                                ),
+                              Builder(
+                                builder: (context) {
+                                  final statusLower = _trip.status
+                                      .toLowerCase()
+                                      .trim();
+                                  String label;
+                                  Color bg;
+                                  Color fg;
+
+                                  if (statusLower == 'scheduled') {
+                                    label = 'SCHEDULED';
+                                    bg = Colors.blue[50]!;
+                                    fg = Colors.blue[800]!;
+                                  } else if (statusLower == 'started' ||
+                                      statusLower == 'start' ||
+                                      statusLower == 'in progress' ||
+                                      statusLower == 'ongoing' ||
+                                      _trip.isActive) {
+                                    label = 'ACTIVE';
+                                    bg = Colors.orange[50]!;
+                                    fg = Colors.orange[800]!;
+                                  } else {
+                                    label = 'COMPLETED';
+                                    bg = Colors.green[50]!;
+                                    fg = Colors.green[800]!;
+                                  }
+
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 6,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: bg,
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Text(
+                                      label,
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                        color: fg,
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
                             ],
                           ),
@@ -617,50 +668,76 @@ class _TripDetailScreenState extends State<TripDetailScreen>
                             ),
                           ],
                           const SizedBox(height: 80),
-                          if (_trip.isActive) ...[
-                             const SizedBox(height: 24),
-                             if (_trip.status == "Scheduled") 
-                                SizedBox(
-                                  width: double.infinity,
-                                  height: 56,
-                                  child: ElevatedButton(
-                                    onPressed: widget.canStart ? _startScheduledTrip : () {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                          content: Text("Plan Approval Pending. You can only start trip after plan is approved."),
-                                          backgroundColor: Colors.orange,
-                                        )
-                                      );
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: widget.canStart ? Colors.green : Colors.grey[400],
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                                      elevation: 0,
-                                    ),
-                                    child: Text(
-                                      widget.canStart ? "Start Trip Now" : "Approval Pending",
-                                      style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-                                    ),
+                          // Bottom action: for scheduled trips show \"Start Trip\",
+                          // for active trips show \"Finish Trip\". Completed trips
+                          // have no primary action.
+                          if (_trip.status.toLowerCase().trim() ==
+                              'scheduled') ...[
+                            const SizedBox(height: 24),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 56,
+                              child: ElevatedButton(
+                                onPressed: widget.canStart
+                                    ? _startScheduledTrip
+                                    : () {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              "Plan Approval Pending. You can only start trip after plan is approved.",
+                                            ),
+                                            backgroundColor: Colors.orange,
+                                          ),
+                                        );
+                                      },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: widget.canStart
+                                      ? Colors.green
+                                      : Colors.grey[400],
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(18),
                                   ),
-                                )
-                             else
-                                SizedBox(
-                                  width: double.infinity,
-                                  height: 56,
-                                  child: ElevatedButton(
-                                    onPressed: _finishTrip,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.redAccent,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                                      elevation: 0,
-                                    ),
-                                    child: Text(
-                                      "Finish Trip Now",
-                                      style: GoogleFonts.outfit(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
-                                    ),
+                                  elevation: 0,
+                                ),
+                                child: Text(
+                                  widget.canStart
+                                      ? "Start Trip Now"
+                                      : "Approval Pending",
+                                  style: GoogleFonts.outfit(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
                                   ),
                                 ),
-                             const SizedBox(height: 40),
+                              ),
+                            ),
+                          ] else if (_trip.isActive) ...[
+                            const SizedBox(height: 24),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 56,
+                              child: ElevatedButton(
+                                onPressed: _finishTrip,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.redAccent,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(18),
+                                  ),
+                                  elevation: 0,
+                                ),
+                                child: Text(
+                                  "Finish Trip Now",
+                                  style: GoogleFonts.outfit(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 40),
                           ],
                         ],
                       ),

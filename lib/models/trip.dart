@@ -109,6 +109,9 @@ class Trip {
       }
     }
 
+    final rawStatus = (json['trip_status'] ?? '').toString();
+    final statusLower = rawStatus.toLowerCase().trim();
+
     return Trip(
       id: DateTime.now().millisecondsSinceEpoch
           .toString(), // Generate a local ID
@@ -122,15 +125,18 @@ class Trip {
       startLng: parseDouble(json['from_location_longitude']),
       endLat: parseDouble(json['to_location_latitude']),
       endLng: parseDouble(json['to_location_longitude']),
-      startTime: parseDate(json['created_date']),
+      // Prefer trip_date (start date of the trip); fall back to created_date
+      startTime: parseDate(json['trip_date'] ?? json['created_date']),
       distanceKm: parseDouble(json['kilometer']),
-      status: (json['trip_status'] ?? '').toString(),
-      isActive: ![
-        'complete',
-        'completed',
-        'finish',
-        'finished',
-      ].contains((json['trip_status'] ?? '').toString().toLowerCase().trim()),
+      status: rawStatus,
+      // Only treat a trip as active if the backend explicitly reports
+      // it as started / in progress. Scheduled or completed trips should
+      // never auto-become active on the device.
+      isActive:
+          statusLower == 'started' ||
+          statusLower == 'start' ||
+          statusLower == 'in progress' ||
+          statusLower == 'ongoing',
     );
   }
 }

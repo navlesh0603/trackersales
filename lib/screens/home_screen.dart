@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:trackersales/providers/auth_provider.dart';
 import 'package:trackersales/providers/trip_provider.dart';
 import 'package:trackersales/screens/trip_detail_screen.dart';
+import 'package:trackersales/services/attendance_service.dart';
 import 'package:intl/intl.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -14,9 +15,44 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  final AttendanceService _attendanceService = AttendanceService();
+  bool _attendanceLoading = true;
+  bool _isClockedIn = false;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadAttendanceStatus();
+    });
+  }
+
+  Future<void> _loadAttendanceStatus() async {
+    final ap = Provider.of<AuthProvider>(context, listen: false);
+    if (ap.user == null) {
+      if (mounted) {
+        setState(() {
+          _attendanceLoading = false;
+          _isClockedIn = false;
+        });
+      }
+      return;
+    }
+
+    final result = await _attendanceService.getLastPunchStatus(
+      ap.user!.systemUserId,
+    );
+    if (!mounted) return;
+    if (result['success'] == true) {
+      setState(() {
+        _isClockedIn = result['isClockedIn'] == true;
+        _attendanceLoading = false;
+      });
+    } else {
+      setState(() {
+        _attendanceLoading = false;
+      });
+    }
   }
 
   @override
@@ -32,6 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
         if (ap.user != null) {
           await tp.fetchTrips(ap.user!.systemUserId);
         }
+        await _loadAttendanceStatus();
       },
       child: Scaffold(
         backgroundColor: Colors.white,
@@ -47,13 +84,40 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (tripProvider.activeTrip != null) ...[
                   _buildActiveTripCard(context, tripProvider.activeTrip!),
                 ],
-                const SizedBox(height: 32),
+                if (tripProvider.activeTrip != null) const SizedBox(height: 24),
+                const SizedBox(height: 8),
                 _buildRecentTripsHeader(context),
                 const SizedBox(height: 16),
                 _buildRecentTripsList(context, tripProvider),
               ],
             ),
           ),
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () {
+            Navigator.pushNamed(context, '/attendance').then((_) {
+              // When coming back from Attendance screen, refresh status
+              _loadAttendanceStatus();
+            });
+          },
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
+          icon: Icon(
+            _attendanceLoading
+                ? Icons.access_time_rounded
+                : _isClockedIn
+                ? Icons.logout_rounded
+                : Icons.login_rounded,
+            size: 24,
+          ),
+          label: Text(
+            _attendanceLoading
+                ? 'Attendance'
+                : _isClockedIn
+                ? 'Punch Out'
+                : 'Punch In',
+          ),
+          elevation: 4,
         ),
       ),
     );
@@ -241,10 +305,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildRecentTripsList(BuildContext context, TripProvider provider) {
     // Limit for scheduled trips that are NOT currently active at top
-    final scheduledTrips = provider.trips.where((trip) => 
-      trip.status.toLowerCase().contains('schedule') && 
-      (provider.activeTrip == null || trip.tripId != provider.activeTrip!.tripId)
-    ).take(10).toList();
+    final scheduledTrips = provider.trips
+        .where(
+          (trip) =>
+              trip.status.toLowerCase().contains('schedule') &&
+              (provider.activeTrip == null ||
+                  trip.tripId != provider.activeTrip!.tripId),
+        )
+        .take(10)
+        .toList();
 
     if (scheduledTrips.isEmpty) {
       return Container(
@@ -313,14 +382,21 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Text(
                   trip.title,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 if (trip.description.isNotEmpty)
                   Text(
                     trip.description,
-                    style: TextStyle(color: Colors.grey[500], fontSize: 12, fontStyle: FontStyle.italic),
+                    style: TextStyle(
+                      color: Colors.grey[500],
+                      fontSize: 12,
+                      fontStyle: FontStyle.italic,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),

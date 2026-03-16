@@ -204,31 +204,43 @@ class TripProvider extends ChangeNotifier {
 
   Future<void> _restoreActiveTrip() async {
     try {
-      // Find the first trip that is marked as active
-      final activeIndex = _trips.indexWhere((trip) => trip.isActive);
+      final prefs = await SharedPreferences.getInstance();
+      final persistedTripId = prefs.getString('active_trip_id');
 
+      // First priority: if we have an explicitly persisted active_trip_id,
+      // restore that trip as active regardless of the backend status string.
+      if (persistedTripId != null) {
+        final idx =
+            _trips.indexWhere((trip) => trip.tripId == persistedTripId);
+        if (idx != -1) {
+          _activeTrip = _trips[idx];
+          _activeTrip!.isActive = true;
+
+          final storedStartTime = prefs.getString('active_trip_start_time');
+          if (storedStartTime != null) {
+            _activeTrip!.startTime = DateTime.parse(storedStartTime);
+          }
+
+          final storedDist = prefs.getDouble('active_trip_distance') ?? 0.0;
+          _activeTrip!.distanceKm = storedDist;
+
+          if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+            final service = FlutterBackgroundService();
+            bool isRunning = await service.isRunning();
+            if (!isRunning) {
+              await service.startService();
+            }
+          }
+
+          _startLocationTracking();
+          return;
+        }
+      }
+
+      // Fallback: older behaviour – find any trip flagged as active by status.
+      final activeIndex = _trips.indexWhere((trip) => trip.isActive);
       if (activeIndex != -1) {
         _activeTrip = _trips[activeIndex];
-
-        // Recovery of precise start time from SharedPreferences
-        final prefs = await SharedPreferences.getInstance();
-        final storedStartTime = prefs.getString('active_trip_start_time');
-        if (storedStartTime != null) {
-          _activeTrip!.startTime = DateTime.parse(storedStartTime);
-        }
-
-        final storedDist = prefs.getDouble('active_trip_distance') ?? 0.0;
-        _activeTrip!.distanceKm = storedDist;
-
-        // Ensure background service is running if we have an active trip
-        if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
-          final service = FlutterBackgroundService();
-          bool isRunning = await service.isRunning();
-          if (!isRunning) {
-            await service.startService();
-          }
-        }
-
         _startLocationTracking();
       } else {
         _activeTrip = null;

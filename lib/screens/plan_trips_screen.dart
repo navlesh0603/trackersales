@@ -5,6 +5,7 @@ import 'package:trackersales/providers/auth_provider.dart';
 import 'package:trackersales/providers/trip_provider.dart';
 import 'package:trackersales/screens/trip_detail_screen.dart';
 import 'package:trackersales/theme/app_theme.dart';
+import 'package:trackersales/services/attendance_service.dart';
 import 'package:trackersales/models/trip.dart';
 
 class PlanTripsScreen extends StatefulWidget {
@@ -21,6 +22,7 @@ class _PlanTripsScreenState extends State<PlanTripsScreen> {
   bool _isLoading = true;
   bool _isSubmittingApproval = false;
   bool _locallySubmittedForApproval = false;
+  final AttendanceService _attendanceService = AttendanceService();
 
   @override
   void initState() {
@@ -119,6 +121,22 @@ class _PlanTripsScreenState extends State<PlanTripsScreen> {
           backgroundColor: Colors.orange,
         ),
       );
+      return;
+    }
+
+    // Attendance guard: must be punched in
+    final statusRes =
+        await _attendanceService.getLastPunchStatus(ap.user!.systemUserId);
+    if (statusRes['success'] == true &&
+        (statusRes['isClockedIn'] != true)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please punch in before starting a trip.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
       return;
     }
 

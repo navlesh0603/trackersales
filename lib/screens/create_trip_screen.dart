@@ -4,6 +4,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:trackersales/models/trip.dart';
 import 'package:trackersales/providers/trip_provider.dart';
 import 'package:trackersales/providers/auth_provider.dart';
+import 'package:trackersales/services/attendance_service.dart';
 import 'package:trackersales/screens/location_picker_screen.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:trackersales/utils/permission_util.dart';
@@ -58,6 +59,8 @@ class _CreateTripScreenState extends State<CreateTripScreen>
   int? _currentPlanId;
   LatLng? _schedFromLocation;
   LatLng? _schedToLocation;
+
+  final AttendanceService _attendanceService = AttendanceService();
 
   @override
   void initState() {
@@ -226,6 +229,22 @@ class _CreateTripScreenState extends State<CreateTripScreen>
             const SnackBar(
               content: Text('User not logged in.'),
               backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+
+      // Attendance guard: must be punched in
+      final statusRes =
+          await _attendanceService.getLastPunchStatus(user.systemUserId);
+      if (statusRes['success'] == true &&
+          (statusRes['isClockedIn'] != true)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Please punch in before starting a trip.'),
+              backgroundColor: Colors.orange,
             ),
           );
         }
