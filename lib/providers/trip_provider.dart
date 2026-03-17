@@ -18,10 +18,17 @@ class TripProvider extends ChangeNotifier {
   bool _isLoading = false;
   Timer? _locationTimer;
   int _systemUserId = 0;
+  bool _pendingCheckInOut = false;
 
   List<Trip> get trips => _trips;
   Trip? get activeTrip => _activeTrip;
   bool get isLoading => _isLoading;
+  bool get pendingCheckInOut => _pendingCheckInOut;
+
+  void dismissCheckInOut() {
+    _pendingCheckInOut = false;
+    notifyListeners();
+  }
 
   /// Start a new trip by calling the API
   Future<Map<String, dynamic>> startTrip({
@@ -171,6 +178,9 @@ class TripProvider extends ChangeNotifier {
       _activeTrip!.notes = notes;
       _activeTrip!.isActive = false;
       _activeTrip = null;
+
+      // Signal HomeScreen to show the check-in/check-out card
+      _pendingCheckInOut = true;
 
       // Clear persistence
       final prefs = await SharedPreferences.getInstance();

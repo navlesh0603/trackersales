@@ -7,7 +7,7 @@ import 'package:trackersales/screens/home_screen.dart';
 import 'package:trackersales/screens/future_trips_screen.dart';
 import 'package:trackersales/screens/create_trip_screen.dart';
 import 'package:trackersales/screens/trip_history_screen.dart';
-import 'package:trackersales/screens/profile_screen.dart';
+import 'package:trackersales/screens/expense_screen.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:trackersales/utils/permission_util.dart';
 
@@ -137,7 +137,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
   @override
   Widget build(BuildContext context) {
     if (!_initializedIndex) {
-      final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      final args =
+          ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
       if (args != null && args.containsKey('initialIndex')) {
         _selectedIndex = args['initialIndex'];
       }
@@ -150,7 +151,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
       const FutureTripsScreen(),
       CreateTripScreen(isActive: _selectedIndex == 2),
       const TripHistoryScreen(),
-      const ProfileScreen(),
+      const ExpenseScreen(),
     ];
 
     return Scaffold(
@@ -209,8 +210,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
               label: 'History',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.person_rounded),
-              label: 'Account',
+              icon: Icon(Icons.receipt_long_rounded),
+              label: 'Expenses',
             ),
           ],
         ),
