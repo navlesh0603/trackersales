@@ -152,10 +152,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         message = 'Unable to open camera. Please try again.';
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text(message), backgroundColor: Colors.red),
       );
     } catch (_) {
       if (!mounted) return;
@@ -261,6 +258,15 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       );
       return;
     }
+    if (_photoPath == null || _photoPath!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Photo is required for punch-out. Please capture one.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
 
     setState(() => _isPunchingOut = true);
 
@@ -268,7 +274,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       systemUserId: user.systemUserId,
       latitude: _latitude!,
       longitude: _longitude!,
-      photoPath: _photoPath,
+      photoPath: _photoPath!,
     );
 
     if (!mounted) return;
@@ -479,7 +485,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               Icon(Icons.camera_alt_rounded, color: Colors.grey[700], size: 20),
               const SizedBox(width: 8),
               Text(
-                'Punch-out photo (optional)',
+                'Punch-out photo',
                 style: GoogleFonts.outfit(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -533,7 +539,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   Widget _buildPunchOutButton() {
     final canPunchOut =
-        _latitude != null && _longitude != null && !_isLoadingLocation;
+        _latitude != null &&
+        _longitude != null &&
+        !_isLoadingLocation &&
+        _photoPath != null &&
+        _photoPath!.isNotEmpty;
 
     return SizedBox(
       height: 56,
