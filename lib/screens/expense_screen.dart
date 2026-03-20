@@ -360,12 +360,28 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
   }
 
   Future<void> _capturePhoto() async {
-    final XFile? photo = await _picker.pickImage(
-      source: ImageSource.camera,
-      imageQuality: 70,
-    );
-    if (photo != null && mounted) {
-      setState(() => _photoPath = photo.path);
+    try {
+      final XFile? photo = await _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 70,
+      );
+      if (photo != null && mounted) {
+        setState(() => _photoPath = photo.path);
+      }
+    } on PlatformException catch (e) {
+      if (!mounted) return;
+      String message;
+      if (e.code == 'camera_access_denied' ||
+          e.code == 'camera_access_denied_without_prompt') {
+        message =
+            'Camera permission was denied. You can enable it in app settings to attach receipts.';
+      } else {
+        message = 'Unable to open camera. Please try again.';
+      }
+      _snack(message);
+    } catch (_) {
+      if (!mounted) return;
+      _snack('Something went wrong while opening the camera.');
     }
   }
 

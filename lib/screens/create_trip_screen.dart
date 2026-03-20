@@ -236,10 +236,10 @@ class _CreateTripScreenState extends State<CreateTripScreen>
       }
 
       // Attendance guard: must be punched in
-      final statusRes =
-          await _attendanceService.getLastPunchStatus(user.systemUserId);
-      if (statusRes['success'] == true &&
-          (statusRes['isClockedIn'] != true)) {
+      final statusRes = await _attendanceService.getLastPunchStatus(
+        user.systemUserId,
+      );
+      if (statusRes['success'] == true && (statusRes['isClockedIn'] != true)) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -389,7 +389,7 @@ class _CreateTripScreenState extends State<CreateTripScreen>
     }
   }
 
-  void _addScheduledTrip() async {
+  Future<bool> _addScheduledTrip({bool showSuccessToast = true}) async {
     if (_schedTripFormKey.currentState!.validate()) {
       if (_currentPlanId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -399,7 +399,7 @@ class _CreateTripScreenState extends State<CreateTripScreen>
             ),
           ),
         );
-        return;
+        return false;
       }
 
       setState(() => _isLoading = true);
@@ -434,7 +434,7 @@ class _CreateTripScreenState extends State<CreateTripScreen>
           _schedFromLocation = null;
           _schedToLocation = null;
         });
-        if (mounted) {
+        if (mounted && showSuccessToast) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Trip successfully added to plan!'),
@@ -442,6 +442,7 @@ class _CreateTripScreenState extends State<CreateTripScreen>
             ),
           );
         }
+        return true;
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -451,18 +452,28 @@ class _CreateTripScreenState extends State<CreateTripScreen>
             ),
           );
         }
+        return false;
       }
     }
+    return false;
   }
 
   void _finishSubmittingPlan() async {
+    final hasCurrentDraft =
+        _schedFromController.text.trim().isNotEmpty ||
+        _schedToController.text.trim().isNotEmpty ||
+        _schedRemarkController.text.trim().isNotEmpty ||
+        _schedFromLocation != null ||
+        _schedToLocation != null;
+
+    // If user has typed current trip but didn't tap "Add Another",
+    // add it automatically before finishing.
+    if (hasCurrentDraft) {
+      final added = await _addScheduledTrip(showSuccessToast: false);
+      if (!added) return;
+    }
+
     if (_scheduledTrips.isEmpty) {
-      if (_schedFromController.text.isNotEmpty &&
-          _schedToController.text.isNotEmpty) {
-        // Try to add the current one first if user filled it but didn't click add
-        _addScheduledTrip();
-        return;
-      }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please add at least one trip before finishing.'),
@@ -1206,7 +1217,11 @@ class _CreateTripScreenState extends State<CreateTripScreen>
           children: [
             Expanded(
               child: OutlinedButton(
-                onPressed: _addScheduledTrip,
+                onPressed: _isLoading
+                    ? null
+                    : () async {
+                        await _addScheduledTrip();
+                      },
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(

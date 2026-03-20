@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:trackersales/providers/auth_provider.dart';
 import 'package:trackersales/providers/trip_provider.dart';
 import 'package:trackersales/screens/trip_detail_screen.dart';
-import 'package:trackersales/theme/app_theme.dart';
 import 'package:trackersales/services/attendance_service.dart';
 import 'package:trackersales/models/trip.dart';
 
@@ -22,6 +21,7 @@ class _PlanTripsScreenState extends State<PlanTripsScreen> {
   bool _isLoading = true;
   bool _isSubmittingApproval = false;
   bool _locallySubmittedForApproval = false;
+  String? _latestPlanStatus;
   final AttendanceService _attendanceService = AttendanceService();
 
   @override
@@ -50,6 +50,10 @@ class _PlanTripsScreenState extends State<PlanTripsScreen> {
         context,
         listen: false,
       ).getTripsByPlan(user.systemUserId, planId);
+      final plansResult = await Provider.of<TripProvider>(
+        context,
+        listen: false,
+      ).getPlans(user.systemUserId);
 
       debugPrint("API Result for getTripsByPlan: $result");
 
@@ -62,6 +66,24 @@ class _PlanTripsScreenState extends State<PlanTripsScreen> {
             );
             if (_trips.isNotEmpty) {
               debugPrint("First trip data: ${_trips.first}");
+            }
+          }
+
+          // Refresh plan status from latest plans API to avoid stale
+          // status passed via widget.plan.
+          if (plansResult['success'] == true && plansResult['data'] is List) {
+            final currentPlan = (plansResult['data'] as List)
+                .cast<dynamic>()
+                .whereType<Map>()
+                .cast<Map<dynamic, dynamic>>()
+                .firstWhere(
+                  (p) =>
+                      (p['plans_id']?.toString() ?? p['plan_id']?.toString()) ==
+                      planId.toString(),
+                  orElse: () => {},
+                );
+            if (currentPlan.isNotEmpty) {
+              _latestPlanStatus = (currentPlan['status'] ?? '').toString();
             }
           }
           _isLoading = false;
@@ -125,10 +147,10 @@ class _PlanTripsScreenState extends State<PlanTripsScreen> {
     }
 
     // Attendance guard: must be punched in
-    final statusRes =
-        await _attendanceService.getLastPunchStatus(ap.user!.systemUserId);
-    if (statusRes['success'] == true &&
-        (statusRes['isClockedIn'] != true)) {
+    final statusRes = await _attendanceService.getLastPunchStatus(
+      ap.user!.systemUserId,
+    );
+    if (statusRes['success'] == true && (statusRes['isClockedIn'] != true)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -172,11 +194,11 @@ class _PlanTripsScreenState extends State<PlanTripsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.plan == null)
-      return const Scaffold(body: Center(child: Text("Invalid Plan")));
-
     final planStatus =
-        (widget.plan['status'] ?? widget.plan['approval_approved'] ?? '')
+        (_latestPlanStatus ??
+                widget.plan['status'] ??
+                widget.plan['approval_approved'] ??
+                '')
             .toString();
     final upperStatus = planStatus.toUpperCase();
     final needsApp =
@@ -186,8 +208,9 @@ class _PlanTripsScreenState extends State<PlanTripsScreen> {
     final bool isApproved = upperStatus == "APPROVED";
     // Both APPROVED and NOT REQUIRED allow starting trips.
     final bool canStart = isApproved || upperStatus == "NOT REQUIRED";
+    final bool isNew = upperStatus == "NEW";
     final bool showSubmitButton =
-        needsApp && !isApproved && !_locallySubmittedForApproval;
+        needsApp && isNew && !_locallySubmittedForApproval;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -303,6 +326,7 @@ class _PlanTripsScreenState extends State<PlanTripsScreen> {
       if (res['success'] == true) {
         setState(() {
           _locallySubmittedForApproval = true;
+          _latestPlanStatus = 'SUBMITTED';
         });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

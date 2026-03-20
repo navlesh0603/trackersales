@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:trackersales/providers/auth_provider.dart';
@@ -510,12 +511,28 @@ class _PostTripCheckInOutCardState extends State<_PostTripCheckInOutCard> {
   }
 
   Future<void> _capturePhoto() async {
-    final XFile? photo = await _picker.pickImage(
-      source: ImageSource.camera,
-      imageQuality: 70,
-    );
-    if (photo != null && mounted) {
-      setState(() => _photoPath = photo.path);
+    try {
+      final XFile? photo = await _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 70,
+      );
+      if (photo != null && mounted) {
+        setState(() => _photoPath = photo.path);
+      }
+    } on PlatformException catch (e) {
+      if (!mounted) return;
+      String message;
+      if (e.code == 'camera_access_denied' ||
+          e.code == 'camera_access_denied_without_prompt') {
+        message =
+            'Camera permission was denied. Open app settings to allow camera if you want to attach photos.';
+      } else {
+        message = 'Unable to open camera. Please try again.';
+      }
+      _showMessage(message);
+    } catch (_) {
+      if (!mounted) return;
+      _showMessage('Something went wrong while opening the camera.');
     }
   }
 

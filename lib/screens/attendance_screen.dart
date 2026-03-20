@@ -1,5 +1,5 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -141,15 +141,30 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       setState(() {
         _photoPath = photo.path;
       });
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Camera error: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+    } on PlatformException catch (e) {
+      if (!mounted) return;
+      String message;
+      if (e.code == 'camera_access_denied' ||
+          e.code == 'camera_access_denied_without_prompt') {
+        message =
+            'Camera permission was denied. You can enable it from app settings if you want to capture photos.';
+      } else {
+        message = 'Unable to open camera. Please try again.';
       }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Something went wrong while opening the camera.'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
