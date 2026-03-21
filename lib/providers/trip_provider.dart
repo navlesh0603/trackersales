@@ -18,17 +18,10 @@ class TripProvider extends ChangeNotifier {
   bool _isLoading = false;
   Timer? _locationTimer;
   int _systemUserId = 0;
-  bool _pendingCheckInOut = false;
 
   List<Trip> get trips => _trips;
   Trip? get activeTrip => _activeTrip;
   bool get isLoading => _isLoading;
-  bool get pendingCheckInOut => _pendingCheckInOut;
-
-  void dismissCheckInOut() {
-    _pendingCheckInOut = false;
-    notifyListeners();
-  }
 
   /// Start a new trip by calling the API
   Future<Map<String, dynamic>> startTrip({
@@ -128,9 +121,9 @@ class TripProvider extends ChangeNotifier {
   Future<Map<String, dynamic>> endTrip(
     double totalDistance,
     List<LatLng> finalPath,
-    String notes,
-    {List<Map<String, dynamic>>? expenseItems}
-  ) async {
+    String notes, {
+    List<Map<String, dynamic>>? expenseItems,
+  }) async {
     if (_activeTrip == null) {
       return {'success': false, 'message': 'No active trip'};
     }
@@ -179,9 +172,6 @@ class TripProvider extends ChangeNotifier {
       _activeTrip!.isActive = false;
       _activeTrip = null;
 
-      // Signal HomeScreen to show the check-in/check-out card
-      _pendingCheckInOut = true;
-
       // Clear persistence
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('active_trip_start_time');
@@ -220,8 +210,7 @@ class TripProvider extends ChangeNotifier {
       // First priority: if we have an explicitly persisted active_trip_id,
       // restore that trip as active regardless of the backend status string.
       if (persistedTripId != null) {
-        final idx =
-            _trips.indexWhere((trip) => trip.tripId == persistedTripId);
+        final idx = _trips.indexWhere((trip) => trip.tripId == persistedTripId);
         if (idx != -1) {
           _activeTrip = _trips[idx];
           _activeTrip!.isActive = true;
@@ -277,11 +266,12 @@ class TripProvider extends ChangeNotifier {
     required String approvalRequired,
   }) async {
     return await _tripService.createPlan(
-        systemUserId: systemUserId,
-        name: name,
-        description: description,
-        date: date,
-        approvalRequired: approvalRequired);
+      systemUserId: systemUserId,
+      name: name,
+      description: description,
+      date: date,
+      approvalRequired: approvalRequired,
+    );
   }
 
   Future<Map<String, dynamic>> scheduleTrip({
@@ -296,29 +286,36 @@ class TripProvider extends ChangeNotifier {
     required double toLng,
   }) async {
     return await _tripService.scheduleTrip(
-        systemUserId: systemUserId,
-        plansId: plansId,
-        fromLocation: fromLocation,
-        toLocation: toLocation,
-        remarks: remarks,
-        fromLat: fromLat,
-        fromLng: fromLng,
-        toLat: toLat,
-        toLng: toLng);
+      systemUserId: systemUserId,
+      plansId: plansId,
+      fromLocation: fromLocation,
+      toLocation: toLocation,
+      remarks: remarks,
+      fromLat: fromLat,
+      fromLng: fromLng,
+      toLat: toLat,
+      toLng: toLng,
+    );
   }
 
   Future<Map<String, dynamic>> submitPlanForApproval({
     required int systemUserId,
     required int plansId,
   }) async {
-    return await _tripService.submitPlanForApproval(systemUserId: systemUserId, plansId: plansId);
+    return await _tripService.submitPlanForApproval(
+      systemUserId: systemUserId,
+      plansId: plansId,
+    );
   }
 
   Future<Map<String, dynamic>> getPlans(int systemUserId) async {
     return await _tripService.getPlans(systemUserId);
   }
 
-  Future<Map<String, dynamic>> getTripsByPlan(int systemUserId, int plansId) async {
+  Future<Map<String, dynamic>> getTripsByPlan(
+    int systemUserId,
+    int plansId,
+  ) async {
     return await _tripService.getTripsByPlan(systemUserId, plansId);
   }
 
@@ -334,7 +331,8 @@ class TripProvider extends ChangeNotifier {
     if (_activeTrip != null) {
       return {
         'success': false,
-        'message': "You already have a trip on. Finish your current trip then start this."
+        'message':
+            "You already have a trip on. Finish your current trip then start this.",
       };
     }
     _isLoading = true;
@@ -369,7 +367,10 @@ class TripProvider extends ChangeNotifier {
 
       // Persistence
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('active_trip_start_time', trip.startTime.toIso8601String());
+      await prefs.setString(
+        'active_trip_start_time',
+        trip.startTime.toIso8601String(),
+      );
       await prefs.setString('active_trip_id', tripsId.toString());
       await prefs.setInt('system_user_id', systemUserId);
       await prefs.setDouble('active_trip_distance', 0.0);

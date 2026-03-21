@@ -17,7 +17,23 @@ import 'package:google_fonts/google_fonts.dart';
 
 class CreateTripScreen extends StatefulWidget {
   final bool isActive;
-  const CreateTripScreen({super.key, this.isActive = false});
+
+  /// Opens in "add scheduled trips to this plan" mode (skips creating a new plan).
+  final int? existingPlansId;
+  final String? existingPlanName;
+
+  /// Plan date from API, usually `dd/MM/yyyy`.
+  final String? existingPlanDateStr;
+
+  const CreateTripScreen({
+    super.key,
+    this.isActive = false,
+    this.existingPlansId,
+    this.existingPlanName,
+    this.existingPlanDateStr,
+  });
+
+  bool get isAddingToExistingPlan => existingPlansId != null;
 
   @override
   State<CreateTripScreen> createState() => _CreateTripScreenState();
@@ -62,10 +78,31 @@ class _CreateTripScreenState extends State<CreateTripScreen>
 
   final AttendanceService _attendanceService = AttendanceService();
 
+  bool get _addingToExistingPlan => widget.isAddingToExistingPlan;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    if (widget.existingPlansId != null) {
+      _selectedTabIndex = 1;
+      _currentPlanId = widget.existingPlansId;
+      _isPlanCreated = true;
+      final name = widget.existingPlanName?.trim();
+      if (name != null && name.isNotEmpty) {
+        _planNameController.text = name;
+      }
+      final ds = widget.existingPlanDateStr?.trim();
+      if (ds != null && ds.isNotEmpty) {
+        try {
+          _planDate = DateFormat('dd/MM/yyyy').parseStrict(ds);
+        } catch (_) {
+          // Other formats: leave _planDate null; UI still works.
+        }
+      }
+    }
+
     if (widget.isActive) {
       _setInitialLocation();
     }
@@ -456,6 +493,25 @@ class _CreateTripScreenState extends State<CreateTripScreen>
       }
     }
     return false;
+  }
+
+  /// Close "add to existing plan" flow and let caller refresh.
+  Future<void> _finishAddingToExistingPlan() async {
+    final hasCurrentDraft =
+        _schedFromController.text.trim().isNotEmpty ||
+        _schedToController.text.trim().isNotEmpty ||
+        _schedRemarkController.text.trim().isNotEmpty ||
+        _schedFromLocation != null ||
+        _schedToLocation != null;
+
+    if (hasCurrentDraft) {
+      final added = await _addScheduledTrip(showSuccessToast: false);
+      if (!added) return;
+    }
+
+    if (mounted) {
+      Navigator.pop(context, true);
+    }
   }
 
   void _finishSubmittingPlan() async {
@@ -1038,21 +1094,22 @@ class _CreateTripScreenState extends State<CreateTripScreen>
                       ],
                     ),
                   ),
-                  GestureDetector(
-                    onTap: () => setState(() => _isPlanCreated = false),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.edit_rounded,
-                        size: 18,
-                        color: Colors.blue,
+                  if (!_addingToExistingPlan)
+                    GestureDetector(
+                      onTap: () => setState(() => _isPlanCreated = false),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.edit_rounded,
+                          size: 18,
+                          color: Colors.blue,
+                        ),
                       ),
                     ),
-                  ),
                 ],
               ),
               const SizedBox(height: 4),
@@ -1229,9 +1286,9 @@ class _CreateTripScreenState extends State<CreateTripScreen>
                   ),
                   side: const BorderSide(color: AppTheme.primaryColor),
                 ),
-                child: const Text(
-                  "Add Another",
-                  style: TextStyle(
+                child: Text(
+                  _addingToExistingPlan ? "Add trip" : "Add Another",
+                  style: const TextStyle(
                     color: AppTheme.primaryColor,
                     fontWeight: FontWeight.bold,
                   ),
@@ -1241,7 +1298,11 @@ class _CreateTripScreenState extends State<CreateTripScreen>
             const SizedBox(width: 16),
             Expanded(
               child: ElevatedButton(
-                onPressed: _isLoading ? null : _finishSubmittingPlan,
+                onPressed: _isLoading
+                    ? null
+                    : (_addingToExistingPlan
+                          ? _finishAddingToExistingPlan
+                          : _finishSubmittingPlan),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
@@ -1257,9 +1318,9 @@ class _CreateTripScreenState extends State<CreateTripScreen>
                           strokeWidth: 2,
                         ),
                       )
-                    : const Text(
-                        "Submit Plan",
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                    : Text(
+                        _addingToExistingPlan ? "Done" : "Submit Plan",
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
               ),
             ),
@@ -1379,7 +1440,7 @@ class _CreateTripScreenState extends State<CreateTripScreen>
           Colors.grey[50], // Slightly off-white background for Uber look
       appBar: AppBar(
         title: Text(
-          "Create Trip",
+          _addingToExistingPlan ? "Add trip to plan" : "Create Trip",
           style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         backgroundColor: Colors.white,
@@ -1395,7 +1456,7 @@ class _CreateTripScreenState extends State<CreateTripScreen>
       body: SafeArea(
         child: Column(
           children: [
-            _buildTabSelector(),
+            if (!_addingToExistingPlan) _buildTabSelector(),
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {

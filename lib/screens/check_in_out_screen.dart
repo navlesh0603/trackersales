@@ -48,6 +48,7 @@ class _CheckInOutScreenState extends State<CheckInOutScreen> {
   @override
   void initState() {
     super.initState();
+    _notesController.addListener(_onNotesChanged);
     _updateDateTime();
     _loadLocation();
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -56,6 +57,10 @@ class _CheckInOutScreenState extends State<CheckInOutScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadCheckInStatus();
     });
+  }
+
+  void _onNotesChanged() {
+    if (mounted) setState(() {});
   }
 
   void _updateDateTime() {
@@ -125,6 +130,7 @@ class _CheckInOutScreenState extends State<CheckInOutScreen> {
 
   @override
   void dispose() {
+    _notesController.removeListener(_onNotesChanged);
     _clockTimer?.cancel();
     _notesController.dispose();
     super.dispose();
@@ -171,8 +177,10 @@ class _CheckInOutScreenState extends State<CheckInOutScreen> {
       return;
     }
     if (_latitude == null || _longitude == null) {
-      _showMessage('Location is required. Please wait or refresh location.',
-          isError: true);
+      _showMessage(
+        'Location is required. Please wait or refresh location.',
+        isError: true,
+      );
       return;
     }
 
@@ -198,8 +206,7 @@ class _CheckInOutScreenState extends State<CheckInOutScreen> {
 
     if (result['success'] == true) {
       final now = DateTime.now();
-      final msg =
-          result['message']?.toString() ?? 'Checked in successfully.';
+      final msg = result['message']?.toString() ?? 'Checked in successfully.';
       setState(() {
         _checkedIn = true;
         _checkInTimeLabel = DateFormat('hh:mm a').format(now);
@@ -226,8 +233,15 @@ class _CheckInOutScreenState extends State<CheckInOutScreen> {
       return;
     }
     if (_latitude == null || _longitude == null) {
-      _showMessage('Location is required. Please wait or refresh location.',
-          isError: true);
+      _showMessage(
+        'Location is required. Please wait or refresh location.',
+        isError: true,
+      );
+      return;
+    }
+    final notes = _notesController.text.trim();
+    if (notes.isEmpty) {
+      _showMessage('Notes are required for check-out.', isError: true);
       return;
     }
 
@@ -245,7 +259,7 @@ class _CheckInOutScreenState extends State<CheckInOutScreen> {
       systemUserId: user.systemUserId,
       latitude: _latitude!,
       longitude: _longitude!,
-      notes: _notesController.text.trim(),
+      notes: notes,
       photoPath: _checkOutPhotoPath!,
     );
 
@@ -259,11 +273,7 @@ class _CheckInOutScreenState extends State<CheckInOutScreen> {
       );
       Future.delayed(const Duration(milliseconds: 400), () {
         if (!mounted) return;
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/home',
-          (route) => false,
-        );
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
       });
     } else {
       _showMessage(
@@ -340,20 +350,8 @@ class _CheckInOutScreenState extends State<CheckInOutScreen> {
         _buildLocationCard(),
         const SizedBox(height: 20),
         _buildCheckOutPhotoCard(),
-        const SizedBox(height: 14),
-        TextField(
-          controller: _notesController,
-          maxLines: 3,
-          decoration: InputDecoration(
-            hintText: 'Check-out notes (optional)',
-            filled: true,
-            fillColor: Colors.grey[100],
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-          ),
-        ),
+        const SizedBox(height: 20),
+        _buildCheckOutNotesCard(),
         const SizedBox(height: 28),
         _buildCheckOutButton(),
       ],
@@ -401,8 +399,7 @@ class _CheckInOutScreenState extends State<CheckInOutScreen> {
 
   Widget _buildCheckedInStatusCard() {
     final timeStr = _checkInTimeLabel.isNotEmpty ? _checkInTimeLabel : '--:--';
-    final dateStr =
-        _checkInDateLabel.isNotEmpty ? _checkInDateLabel : '';
+    final dateStr = _checkInDateLabel.isNotEmpty ? _checkInDateLabel : '';
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -544,10 +541,17 @@ class _CheckInOutScreenState extends State<CheckInOutScreen> {
           if (!_isLoadingLocation)
             TextButton.icon(
               onPressed: _loadLocation,
-              icon: Icon(Icons.refresh_rounded, size: 18, color: Colors.grey[600]),
+              icon: Icon(
+                Icons.refresh_rounded,
+                size: 18,
+                color: Colors.grey[600],
+              ),
               label: Text(
                 'Refresh',
-                style: GoogleFonts.outfit(fontSize: 12, color: Colors.grey[600]),
+                style: GoogleFonts.outfit(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                ),
               ),
             ),
         ],
@@ -588,7 +592,9 @@ class _CheckInOutScreenState extends State<CheckInOutScreen> {
           ),
           const SizedBox(height: 12),
           GestureDetector(
-            onTap: _isCheckingIn ? null : () => _capturePhoto(forCheckOut: false),
+            onTap: _isCheckingIn
+                ? null
+                : () => _capturePhoto(forCheckOut: false),
             child: Container(
               height: 200,
               width: double.infinity,
@@ -596,7 +602,9 @@ class _CheckInOutScreenState extends State<CheckInOutScreen> {
                 color: Colors.grey[100],
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: _checkInPhotoPath != null ? Colors.teal : Colors.grey[300]!,
+                  color: _checkInPhotoPath != null
+                      ? Colors.teal
+                      : Colors.grey[300]!,
                   width: _checkInPhotoPath != null ? 2 : 1,
                 ),
               ),
@@ -606,8 +614,11 @@ class _CheckInOutScreenState extends State<CheckInOutScreen> {
                   : Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.add_a_photo_rounded,
-                            size: 40, color: Colors.grey[400]),
+                        Icon(
+                          Icons.add_a_photo_rounded,
+                          size: 40,
+                          color: Colors.grey[400],
+                        ),
                         const SizedBox(height: 8),
                         Text(
                           'Tap to capture',
@@ -658,7 +669,9 @@ class _CheckInOutScreenState extends State<CheckInOutScreen> {
           ),
           const SizedBox(height: 12),
           GestureDetector(
-            onTap: _isCheckingOut ? null : () => _capturePhoto(forCheckOut: true),
+            onTap: _isCheckingOut
+                ? null
+                : () => _capturePhoto(forCheckOut: true),
             child: Container(
               height: 160,
               width: double.infinity,
@@ -666,8 +679,9 @@ class _CheckInOutScreenState extends State<CheckInOutScreen> {
                 color: Colors.grey[100],
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color:
-                      _checkOutPhotoPath != null ? Colors.orange : Colors.grey[300]!,
+                  color: _checkOutPhotoPath != null
+                      ? Colors.orange
+                      : Colors.grey[300]!,
                   width: _checkOutPhotoPath != null ? 2 : 1,
                 ),
               ),
@@ -677,8 +691,11 @@ class _CheckInOutScreenState extends State<CheckInOutScreen> {
                   : Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.add_a_photo_rounded,
-                            size: 36, color: Colors.grey[400]),
+                        Icon(
+                          Icons.add_a_photo_rounded,
+                          size: 36,
+                          color: Colors.grey[400],
+                        ),
                         const SizedBox(height: 8),
                         Text(
                           'New photo required (not the check-in photo)',
@@ -690,6 +707,100 @@ class _CheckInOutScreenState extends State<CheckInOutScreen> {
                         ),
                       ],
                     ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCheckOutNotesCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+        border: Border.all(color: Colors.grey[300]!, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.edit_note_rounded,
+                  color: Colors.red.shade700,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Check-out notes',
+                      style: GoogleFonts.outfit(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Describe the visit or purpose before checking out.',
+                      style: GoogleFonts.outfit(
+                        fontSize: 13,
+                        color: Colors.grey[700],
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _notesController,
+            minLines: 4,
+            maxLines: 6,
+            style: GoogleFonts.outfit(
+              fontSize: 16,
+              color: Colors.black87,
+              height: 1.4,
+            ),
+            decoration: InputDecoration(
+              hintText: 'Type your notes here…',
+              hintStyle: GoogleFonts.outfit(
+                fontSize: 16,
+                color: Colors.grey[500],
+              ),
+              filled: true,
+              fillColor: const Color(0xFFF5F5F7),
+              contentPadding: const EdgeInsets.all(16),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: Colors.grey[400]!, width: 1.5),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: Colors.red.shade400, width: 2),
+              ),
             ),
           ),
         ],
@@ -731,8 +842,13 @@ class _CheckInOutScreenState extends State<CheckInOutScreen> {
   }
 
   Widget _buildCheckOutButton() {
+    final hasNotes = _notesController.text.trim().isNotEmpty;
     final canSubmit =
-        _latitude != null && _longitude != null && !_isLoadingLocation;
+        _latitude != null &&
+        _longitude != null &&
+        !_isLoadingLocation &&
+        _checkOutPhotoPath != null &&
+        hasNotes;
 
     return SizedBox(
       height: 56,

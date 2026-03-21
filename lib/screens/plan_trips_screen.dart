@@ -6,6 +6,8 @@ import 'package:trackersales/providers/trip_provider.dart';
 import 'package:trackersales/screens/trip_detail_screen.dart';
 import 'package:trackersales/services/attendance_service.dart';
 import 'package:trackersales/models/trip.dart';
+import 'package:trackersales/screens/create_trip_screen.dart';
+import 'package:intl/intl.dart';
 
 class PlanTripsScreen extends StatefulWidget {
   final Map<dynamic, dynamic> plan;
@@ -30,9 +32,66 @@ class _PlanTripsScreenState extends State<PlanTripsScreen> {
     _fetchTrips();
   }
 
+  /// Plan trips use the plan's date; only today or future plans accept new trips.
+  bool _planDateIsTodayOrFuture() {
+    final raw = widget.plan['date']?.toString();
+    if (raw == null || raw.isEmpty) return true;
+    try {
+      final d = DateFormat('dd/MM/yyyy').parseStrict(raw.trim());
+      final today = DateTime.now();
+      final planDay = DateTime(d.year, d.month, d.day);
+      final todayDay = DateTime(today.year, today.month, today.day);
+      return !planDay.isBefore(todayDay);
+    } catch (_) {
+      return true;
+    }
+  }
+
+  Future<void> _openAddTripToPlan() async {
+    if (!_planDateIsTodayOrFuture()) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'You can only add trips to plans dated today or in the future.',
+            ),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+
+    final rawId = widget.plan['plan_id'] ?? widget.plan['plans_id'];
+    final planId = int.tryParse(rawId?.toString() ?? '0') ?? 0;
+    if (planId == 0) return;
+
+    final name = (widget.plan['name'] ?? widget.plan['plan_name'] ?? 'Plan')
+        .toString();
+    final dateStr = widget.plan['date']?.toString();
+
+    final added = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CreateTripScreen(
+          existingPlansId: planId,
+          existingPlanName: name,
+          existingPlanDateStr: dateStr,
+        ),
+      ),
+    );
+
+    if (added == true && mounted) {
+      setState(() => _isLoading = true);
+      await _fetchTrips();
+    }
+  }
+
   Future<void> _fetchTrips() async {
     final user = Provider.of<AuthProvider>(context, listen: false).user;
     if (user == null) return;
+
+    if (mounted) setState(() => _isLoading = true);
 
     try {
       final rawId = widget.plan['plan_id'] ?? widget.plan['plans_id'];
@@ -204,13 +263,19 @@ class _PlanTripsScreenState extends State<PlanTripsScreen> {
     final needsApp =
         (widget.plan['approval_required'] ?? '').toString() == "Yes";
 
-    // Backend status values: "NEW", "APPROVED", "NOT REQUIRED".
+    // Backend status values: "NEW", "SUBMITTED", "APPROVED", "NOT REQUIRED".
     final bool isApproved = upperStatus == "APPROVED";
     // Both APPROVED and NOT REQUIRED allow starting trips.
     final bool canStart = isApproved || upperStatus == "NOT REQUIRED";
+    // Only truly NEW (not yet submitted) plans show the submit button.
     final bool isNew = upperStatus == "NEW";
     final bool showSubmitButton =
-        needsApp && isNew && !_locallySubmittedForApproval;
+        !_isLoading &&
+        needsApp &&
+        isNew &&
+        upperStatus != "SUBMITTED" &&
+        !_locallySubmittedForApproval;
+    final bool canAddTrips = _planDateIsTodayOrFuture();
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -224,6 +289,14 @@ class _PlanTripsScreenState extends State<PlanTripsScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         foregroundColor: Colors.black,
+        actions: [
+          if (canAddTrips)
+            IconButton(
+              tooltip: 'Add trip to plan',
+              icon: const Icon(Icons.add_road_rounded),
+              onPressed: _isLoading ? null : _openAddTripToPlan,
+            ),
+        ],
       ),
       body: SafeArea(
         child: RefreshIndicator(
@@ -231,7 +304,7 @@ class _PlanTripsScreenState extends State<PlanTripsScreen> {
           child: _isLoading
               ? _buildScrollableLoading()
               : _trips.isEmpty
-              ? _buildScrollableEmpty()
+              ? _buildScrollableEmpty(canAddTrips)
               : ListView.builder(
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.symmetric(
@@ -375,7 +448,7 @@ class _PlanTripsScreenState extends State<PlanTripsScreen> {
     );
   }
 
-  Widget _buildScrollableEmpty() {
+  Widget _buildScrollableEmpty(bool canAddTrips) {
     return ListView(
       physics: const AlwaysScrollableScrollPhysics(),
       children: [
@@ -393,6 +466,48 @@ class _PlanTripsScreenState extends State<PlanTripsScreen> {
                   fontSize: 16,
                 ),
               ),
+              if (canAddTrips) ...[
+                const SizedBox(height: 28),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 40),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton.icon(
+                      onPressed: _isLoading ? null : _openAddTripToPlan,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.black,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 0,
+                      ),
+                      icon: const Icon(Icons.add_road_rounded, size: 22),
+                      label: Text(
+                        'Add trip',
+                        style: GoogleFonts.outfit(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ] else ...[
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Text(
+                    'This plan’s date is in the past. New trips can only be added to today’s or future plans.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.outfit(
+                      color: Colors.grey[500],
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
