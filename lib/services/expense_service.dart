@@ -56,15 +56,64 @@ class ExpenseService {
     }
   }
 
+  /// Fetch expense type master list
+  /// POST GetExpenseTypesApi.htm?system_user_id=...
+  Future<Map<String, dynamic>> getExpenseTypes(int systemUserId) async {
+    try {
+      final url = Uri.parse(
+        '$_baseUrl/GetExpenseTypesApi.htm?system_user_id=$systemUserId',
+      );
+
+      final response = await http
+          .post(url)
+          .timeout(
+            _timeout,
+            onTimeout: () {
+              throw TimeoutException(
+                'Connection is slow. Please check your internet connection.',
+              );
+            },
+          );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data is Map<String, dynamic> && data['data'] is List) {
+          return {'success': true, 'types': data['data'] as List};
+        }
+        return {'success': true, 'types': []};
+      } else {
+        return {
+          'success': false,
+          'message': 'Server error: ${response.statusCode}',
+        };
+      }
+    } on SocketException {
+      return {
+        'success': false,
+        'message': 'No internet connection. Please check your network.',
+      };
+    } on TimeoutException catch (e) {
+      return {
+        'success': false,
+        'message': e.message ?? 'Connection timeout. Please try again.',
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'An error occurred: ${e.toString()}',
+      };
+    }
+  }
+
   /// Add a new expense
   /// POST AddExpenseApi?system_user_id=...&date=dd/MM/yyyy&expense_type_id=...&amount=...
-  /// photo as multipart file (required)
+  /// photo as multipart file (optional)
   Future<Map<String, dynamic>> addExpense({
     required int systemUserId,
     required String date, // dd/MM/yyyy
     required int expenseTypeId,
     required double amount,
-    required String photoPath,
+    String? photoPath,
   }) async {
     try {
       final url = Uri.parse(
@@ -76,7 +125,9 @@ class ExpenseService {
       );
 
       final request = http.MultipartRequest('POST', url);
-      request.files.add(await http.MultipartFile.fromPath('photo', photoPath));
+      if (photoPath != null && photoPath.isNotEmpty) {
+        request.files.add(await http.MultipartFile.fromPath('photo', photoPath));
+      }
 
       final streamed = await request.send().timeout(
         _timeout,

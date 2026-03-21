@@ -23,6 +23,28 @@ class _HomeScreenState extends State<HomeScreen> {
   final AttendanceService _attendanceService = AttendanceService();
   bool _attendanceLoading = true;
   bool _isClockedIn = false;
+  bool _isCheckedIn = false;
+  bool _showFabActions = false;
+
+  void _toggleFabActions() {
+    setState(() {
+      _showFabActions = !_showFabActions;
+    });
+  }
+
+  void _openAttendanceFromFab() {
+    setState(() => _showFabActions = false);
+    Navigator.pushNamed(context, '/attendance').then((_) {
+      _loadAttendanceStatus();
+    });
+  }
+
+  void _openCheckInOutFromFab() {
+    setState(() => _showFabActions = false);
+    Navigator.pushNamed(context, '/check-in-out').then((_) {
+      _loadAttendanceStatus();
+    });
+  }
 
   @override
   void initState() {
@@ -39,25 +61,33 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           _attendanceLoading = false;
           _isClockedIn = false;
+          _isCheckedIn = false;
         });
       }
       return;
     }
 
-    final result = await _attendanceService.getLastPunchStatus(
+    final punchFuture = _attendanceService.getLastPunchStatus(
       ap.user!.systemUserId,
     );
+    final checkInFuture = _attendanceService.getLastCheckInStatus(
+      ap.user!.systemUserId,
+    );
+    final results = await Future.wait([punchFuture, checkInFuture]);
     if (!mounted) return;
-    if (result['success'] == true) {
-      setState(() {
-        _isClockedIn = result['isClockedIn'] == true;
-        _attendanceLoading = false;
-      });
-    } else {
-      setState(() {
-        _attendanceLoading = false;
-      });
-    }
+
+    final punchRes = results[0];
+    final checkRes = results[1];
+
+    setState(() {
+      if (punchRes['success'] == true) {
+        _isClockedIn = punchRes['isClockedIn'] == true;
+      }
+      if (checkRes['success'] == true) {
+        _isCheckedIn = checkRes['isCheckedIn'] == true;
+      }
+      _attendanceLoading = false;
+    });
   }
 
   @override
@@ -103,32 +133,63 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ),
-        floatingActionButton: FloatingActionButton.extended(
-          heroTag: 'home_attendance_fab',
-          onPressed: () {
-            Navigator.pushNamed(context, '/attendance').then((_) {
-              // When coming back from Attendance screen, refresh status
-              _loadAttendanceStatus();
-            });
-          },
-          backgroundColor: Colors.black,
-          foregroundColor: Colors.white,
-          icon: Icon(
-            _attendanceLoading
-                ? Icons.access_time_rounded
-                : _isClockedIn
-                ? Icons.logout_rounded
-                : Icons.login_rounded,
-            size: 24,
-          ),
-          label: Text(
-            _attendanceLoading
-                ? 'Attendance'
-                : _isClockedIn
-                ? 'Punch Out'
-                : 'Punch In',
-          ),
-          elevation: 4,
+        floatingActionButton: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            if (_showFabActions) ...[
+              FloatingActionButton.extended(
+                heroTag: 'home_attendance_action',
+                onPressed: _openAttendanceFromFab,
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black,
+                icon: Icon(
+                  _attendanceLoading
+                      ? Icons.access_time_rounded
+                      : _isClockedIn
+                      ? Icons.logout_rounded
+                      : Icons.login_rounded,
+                ),
+                label: Text(
+                  _attendanceLoading
+                      ? 'Attendance'
+                      : (_isClockedIn ? 'Punch Out' : 'Punch In'),
+                ),
+              ),
+              const SizedBox(height: 10),
+              FloatingActionButton.extended(
+                heroTag: 'home_checkinout_action',
+                onPressed: _openCheckInOutFromFab,
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black,
+                icon: Icon(
+                  _attendanceLoading
+                      ? Icons.access_time_rounded
+                      : _isCheckedIn
+                      ? Icons.logout_rounded
+                      : Icons.login_rounded,
+                ),
+                label: Text(
+                  _attendanceLoading
+                      ? 'Visit'
+                      : (_isCheckedIn ? 'Check Out' : 'Check In'),
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+            FloatingActionButton.extended(
+              heroTag: 'home_attendance_fab',
+              onPressed: _toggleFabActions,
+              backgroundColor: Colors.black,
+              foregroundColor: Colors.white,
+              icon: Icon(
+                _showFabActions ? Icons.close_rounded : Icons.bolt_rounded,
+                size: 24,
+              ),
+              label: Text(_showFabActions ? 'Close' : 'Quick Actions'),
+              elevation: 4,
+            ),
+          ],
         ),
       ),
     );

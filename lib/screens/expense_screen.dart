@@ -7,15 +7,6 @@ import 'package:provider/provider.dart';
 import 'package:trackersales/providers/auth_provider.dart';
 import 'package:trackersales/services/expense_service.dart';
 
-// Expense types — update IDs if backend adds more types
-const List<Map<String, dynamic>> kExpenseTypes = [
-  {'id': 1, 'label': 'Hotel Room Cost'},
-  {'id': 2, 'label': 'Food & Meals'},
-  {'id': 3, 'label': 'Fuel / Transport'},
-  {'id': 4, 'label': 'Parking'},
-  {'id': 5, 'label': 'Miscellaneous'},
-];
-
 class ExpenseScreen extends StatefulWidget {
   const ExpenseScreen({super.key});
 
@@ -27,13 +18,18 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
   final ExpenseService _service = ExpenseService();
 
   bool _loading = true;
+  bool _typesLoading = false;
   List<dynamic> _expenses = [];
+  List<Map<String, dynamic>> _expenseTypes = [];
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _fetchExpenses());
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _fetchExpenses();
+      await _loadExpenseTypesIfNeeded();
+    });
   }
 
   Future<void> _fetchExpenses() async {
@@ -61,15 +57,67 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
     }
   }
 
+  Future<void> _loadExpenseTypesIfNeeded() async {
+    if (_expenseTypes.isNotEmpty || _typesLoading) return;
+
+    final ap = Provider.of<AuthProvider>(context, listen: false);
+    if (ap.user == null) return;
+
+    setState(() => _typesLoading = true);
+    final result = await _service.getExpenseTypes(ap.user!.systemUserId);
+    if (!mounted) return;
+
+    if (result['success'] == true) {
+      final raw = (result['types'] as List?) ?? [];
+      final parsed = raw
+          .whereType<Map>()
+          .map((e) {
+            final typeId = int.tryParse('${e['expense_type_id']}');
+            final name = (e['name'] ?? '').toString();
+            if (typeId == null || name.isEmpty) return null;
+            return {'id': typeId, 'label': name};
+          })
+          .whereType<Map<String, dynamic>>()
+          .toList();
+      setState(() {
+        _expenseTypes = parsed;
+        _typesLoading = false;
+      });
+    } else {
+      setState(() => _typesLoading = false);
+    }
+  }
+
   void _openAddExpense() {
     final ap = Provider.of<AuthProvider>(context, listen: false);
     if (ap.user == null) return;
+    if (_expenseTypes.isEmpty) {
+      _loadExpenseTypesIfNeeded().then((_) {
+        if (!mounted) return;
+        if (_expenseTypes.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Unable to load expense types. Please try again.'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          return;
+        }
+        _showAddExpenseSheet(ap.user!.systemUserId);
+      });
+      return;
+    }
+    _showAddExpenseSheet(ap.user!.systemUserId);
+  }
+
+  void _showAddExpenseSheet(int systemUserId) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _AddExpenseSheet(
-        systemUserId: ap.user!.systemUserId,
+        systemUserId: systemUserId,
+        expenseTypes: _expenseTypes,
         onSuccess: () {
           Navigator.pop(context);
           _fetchExpenses();
@@ -316,9 +364,14 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
 
 class _AddExpenseSheet extends StatefulWidget {
   final int systemUserId;
+  final List<Map<String, dynamic>> expenseTypes;
   final VoidCallback onSuccess;
 
-  const _AddExpenseSheet({required this.systemUserId, required this.onSuccess});
+  const _AddExpenseSheet({
+    required this.systemUserId,
+    required this.expenseTypes,
+    required this.onSuccess,
+  });
 
   @override
   State<_AddExpenseSheet> createState() => _AddExpenseSheetState();
@@ -330,9 +383,15 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
   final TextEditingController _amountController = TextEditingController();
 
   DateTime _selectedDate = DateTime.now();
-  int _selectedTypeId = kExpenseTypes[0]['id'] as int;
+  int? _selectedTypeId;
   String? _photoPath;
   bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedTypeId = null;
+  }
 
   @override
   void dispose() {
@@ -396,8 +455,8 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
       _snack('Please enter a valid amount.');
       return;
     }
-    if (_photoPath == null) {
-      _snack('Please capture a photo of the receipt.');
+    if (_selectedTypeId == null) {
+      _snack('Please select an expense type.');
       return;
     }
 
@@ -407,9 +466,9 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
     final result = await _service.addExpense(
       systemUserId: widget.systemUserId,
       date: dateStr,
-      expenseTypeId: _selectedTypeId,
+      expenseTypeId: _selectedTypeId!,
       amount: amount,
-      photoPath: _photoPath!,
+      photoPath: _photoPath,
     );
 
     if (!mounted) return;
@@ -503,15 +562,18 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
                     child: DropdownButton<int>(
                       value: _selectedTypeId,
                       isExpanded: true,
+                      hint: const Text('Select from the options below'),
                       style: const TextStyle(
                         color: Colors.black,
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                       ),
                       onChanged: (val) {
-                        if (val != null) setState(() => _selectedTypeId = val);
+                        if (val != null) {
+                          setState(() => _selectedTypeId = val);
+                        }
                       },
-                      items: kExpenseTypes
+                      items: widget.expenseTypes
                           .map(
                             (t) => DropdownMenuItem<int>(
                               value: t['id'] as int,
@@ -601,7 +663,7 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'Capture receipt photo (required)',
+                          'Capture receipt photo (optional)',
                           style: TextStyle(
                             color: Colors.grey[400],
                             fontSize: 12,
@@ -617,7 +679,7 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: _loading ? null : _submit,
+              onPressed: (_loading || widget.expenseTypes.isEmpty) ? null : _submit,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,
                 foregroundColor: Colors.white,

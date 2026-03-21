@@ -393,4 +393,66 @@ class AttendanceService {
       };
     }
   }
+
+  /// Last visit check-in / check-out status
+  /// POST GetLastCheckInStatusApi.htm?system_user_id=...
+  /// Example: status "CHECK IN" | "CHECK OUT"
+  Future<Map<String, dynamic>> getLastCheckInStatus(int systemUserId) async {
+    try {
+      final url = Uri.parse(
+        '$_baseUrl/GetLastCheckInStatusApi.htm?system_user_id=$systemUserId',
+      );
+
+      final response = await http
+          .post(url)
+          .timeout(
+            _timeout,
+            onTimeout: () {
+              throw TimeoutException(
+                'Connection is slow. Please check your internet connection.',
+              );
+            },
+          );
+
+      if (response.statusCode == 200) {
+        final dynamic data = json.decode(response.body);
+        if (data is Map<String, dynamic> && data['data'] is List) {
+          final list = data['data'] as List;
+          if (list.isNotEmpty && list.first is Map<String, dynamic>) {
+            final Map<String, dynamic> first = Map<String, dynamic>.from(
+              list.first as Map,
+            );
+            final status = (first['status'] ?? '').toString().toUpperCase();
+            final isCheckedIn = status == 'CHECK IN';
+            return {
+              'success': true,
+              'isCheckedIn': isCheckedIn,
+              'raw': first,
+            };
+          }
+        }
+        return {'success': true, 'isCheckedIn': false, 'raw': null};
+      } else {
+        return {
+          'success': false,
+          'message': 'Server error: ${response.statusCode}',
+        };
+      }
+    } on SocketException {
+      return {
+        'success': false,
+        'message': 'No internet connection. Please check your network.',
+      };
+    } on TimeoutException catch (e) {
+      return {
+        'success': false,
+        'message': e.message ?? 'Connection timeout. Please try again.',
+      };
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'An error occurred: ${e.toString()}',
+      };
+    }
+  }
 }
