@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
+import 'trip_provider.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
@@ -92,7 +93,9 @@ class AuthProvider extends ChangeNotifier {
     return result;
   }
 
-  Future<void> logout() async {
+  Future<void> logout({TripProvider? tripProvider}) async {
+    // Stop background trip tracking before clearing the user session
+    await tripProvider?.cleanupOnLogout();
     await _authService.logout();
     _user = null;
     notifyListeners();

@@ -529,14 +529,15 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
     final navBarPad = MediaQuery.of(context).viewPadding.bottom;
 
     return Container(
-      padding: EdgeInsets.fromLTRB(24, 20, 24, 24 + bottomPad + navBarPad),
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(24, 20, 24, 24 + bottomPad + navBarPad),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Handle
           Center(
@@ -746,6 +747,7 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
             ),
           ),
         ],
+        ),
       ),
     );
   }

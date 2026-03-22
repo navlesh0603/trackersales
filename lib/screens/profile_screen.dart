@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:trackersales/providers/auth_provider.dart';
+import 'package:trackersales/providers/trip_provider.dart';
 import 'package:trackersales/theme/app_theme.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -30,12 +31,15 @@ class ProfileScreen extends StatelessWidget {
         ),
         centerTitle: true,
         automaticallyImplyLeading: false,
-        leading: Navigator.canPop(context) 
-          ? IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black),
-              onPressed: () => Navigator.pop(context),
-            )
-          : null,
+        leading: Navigator.canPop(context)
+            ? IconButton(
+                icon: const Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  color: Colors.black,
+                ),
+                onPressed: () => Navigator.pop(context),
+              )
+            : null,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -314,7 +318,9 @@ class ProfileScreen extends StatelessWidget {
           ),
           ElevatedButton(
             onPressed: () {
-              Provider.of<AuthProvider>(context, listen: false).logout();
+              Provider.of<AuthProvider>(context, listen: false).logout(
+                tripProvider: Provider.of<TripProvider>(context, listen: false),
+              );
               Navigator.pushNamedAndRemoveUntil(
                 context,
                 '/login',

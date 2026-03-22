@@ -183,6 +183,25 @@ class _TripDetailScreenState extends State<TripDetailScreen>
       return;
     }
 
+    // Check-in guard: if the user is currently checked in, they must check out first
+    final checkInRes = await _attendanceService.getLastCheckInStatus(
+      ap.user!.systemUserId,
+    );
+    if (checkInRes['success'] == true && checkInRes['isCheckedIn'] == true) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'You are currently checked in. Please check out before starting a new trip.',
+            ),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+      return;
+    }
+
     // Show loading
     showDialog(
       context: context,

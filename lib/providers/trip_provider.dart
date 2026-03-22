@@ -198,6 +198,9 @@ class TripProvider extends ChangeNotifier {
       await prefs.remove('active_trip_distance');
       await prefs.remove('active_trip_path');
 
+      // Stop the background tracking service & dismiss its notification
+      await _stopBackgroundServiceIfRunning();
+
       // Refresh the trips list from server to get the final status
       await fetchTrips(_systemUserId);
     }
@@ -218,6 +221,36 @@ class TripProvider extends ChangeNotifier {
       await _restoreActiveTrip();
       notifyListeners();
     }
+  }
+
+  /// Stop the Android/iOS foreground background service if it is currently running.
+  Future<void> _stopBackgroundServiceIfRunning() async {
+    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+      try {
+        final service = FlutterBackgroundService();
+        if (await service.isRunning()) {
+          service.invoke('stopService');
+        }
+      } catch (e) {
+        debugPrint('Error stopping background service: $e');
+      }
+    }
+  }
+
+  /// Called on logout — stops background tracking and wipes all trip session data.
+  Future<void> cleanupOnLogout() async {
+    _locationTimer?.cancel();
+    _locationTimer = null;
+    _activeTrip = null;
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('active_trip_start_time');
+    await prefs.remove('active_trip_id');
+    await prefs.remove('active_trip_distance');
+    await prefs.remove('active_trip_path');
+
+    await _stopBackgroundServiceIfRunning();
+    notifyListeners();
   }
 
   /// True when SharedPreferences still hold an active trip id (survives stale lists / races).
@@ -270,6 +303,8 @@ class TripProvider extends ChangeNotifier {
         _activeTrip = null;
         _locationTimer?.cancel();
         _locationTimer = null;
+        // No active trip — stop any stale background service that may still be running
+        await _stopBackgroundServiceIfRunning();
       }
     } catch (e) {
       debugPrint("Error restoring active trip: $e");
