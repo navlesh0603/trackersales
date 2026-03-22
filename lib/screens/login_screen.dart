@@ -19,6 +19,20 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscurePassword = true;
   String? _errorMessage;
 
+  /// Converts any raw/technical error string into a short user-friendly message.
+  String _friendlyMessage(String? raw) {
+    if (raw == null || raw.isEmpty) {
+      return 'Invalid mobile number or password. Please try again.';
+    }
+    final lower = raw.toLowerCase();
+    if (lower.contains('formatexception') ||
+        lower.contains('unexpected end') ||
+        lower.contains('an error occurred')) {
+      return 'Invalid mobile number or password. Please try again.';
+    }
+    return raw;
+  }
+
   Future<void> _handleLogin() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _errorMessage = null);
@@ -36,14 +50,28 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       } else {
         if (mounted) {
-          setState(() {
-            _errorMessage = result['message'];
-          });
+          final msg = _friendlyMessage(result['message']?.toString());
+          setState(() => _errorMessage = msg);
           ScaffoldMessenger.of(context).clearSnackBars();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(result['message']),
-              backgroundColor: Colors.red,
+              content: Row(
+                children: [
+                  const Icon(
+                    Icons.error_outline_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(msg)),
+                ],
+              ),
+              backgroundColor: Colors.red.shade700,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              duration: const Duration(seconds: 4),
             ),
           );
         }

@@ -96,11 +96,25 @@ class _FutureTripsScreenState extends State<FutureTripsScreen> {
     final tripProvider = Provider.of<TripProvider>(context, listen: false);
     if (user == null) return;
 
+    if (tripProvider.activeTrip != null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'You already have a trip on. Finish your current trip then start this.',
+            ),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+
     // Attendance guard: must be punched in
-    final statusRes =
-        await _attendanceService.getLastPunchStatus(user.systemUserId);
-    if (statusRes['success'] == true &&
-        (statusRes['isClockedIn'] != true)) {
+    final statusRes = await _attendanceService.getLastPunchStatus(
+      user.systemUserId,
+    );
+    if (statusRes['success'] == true && (statusRes['isClockedIn'] != true)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

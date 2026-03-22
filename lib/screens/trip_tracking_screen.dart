@@ -522,8 +522,17 @@ class _TripTrackingScreenState extends State<TripTrackingScreen> {
       final tripProvider = Provider.of<TripProvider>(context, listen: false);
       try {
         final prefs = await SharedPreferences.getInstance();
-        final finalRecordedDistance =
-            prefs.getDouble('active_trip_distance') ?? _totalDistance;
+        // Force a fresh read from disk — the background service (separate isolate)
+        // writes the distance there, but the main isolate's in-memory cache may be stale.
+        await prefs.reload();
+        final storedDistance = prefs.getDouble('active_trip_distance');
+        // Take the best value: prefs (written by BG service) vs in-memory (from live BG events).
+        final finalRecordedDistance = (storedDistance != null && storedDistance > _totalDistance)
+            ? storedDistance
+            : _totalDistance;
+        debugPrint(
+          'EndTrip: storedDist=$storedDistance, inMemory=$_totalDistance, sending=$finalRecordedDistance',
+        );
 
         final response = await tripProvider
             .endTrip(

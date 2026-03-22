@@ -14,6 +14,21 @@ class ExpenseScreen extends StatefulWidget {
   State<ExpenseScreen> createState() => _ExpenseScreenState();
 }
 
+/// Parse expense date from API (`dd/MM/yyyy` or ISO). Returns null if unknown.
+DateTime? _parseExpenseDateForSort(dynamic raw) {
+  final s = raw?.toString().trim() ?? '';
+  if (s.isEmpty) return null;
+  try {
+    return DateFormat('dd/MM/yyyy').parseStrict(s);
+  } catch (_) {
+    try {
+      return DateTime.parse(s);
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
 class _ExpenseScreenState extends State<ExpenseScreen> {
   final ExpenseService _service = ExpenseService();
 
@@ -45,8 +60,27 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
     final result = await _service.getExpenses(ap.user!.systemUserId);
     if (!mounted) return;
     if (result['success'] == true) {
+      final raw = (result['expenses'] as List?) ?? [];
+      final sorted = List<dynamic>.from(raw);
+      sorted.sort((a, b) {
+        if (a is! Map || b is! Map) return 0;
+        final da = _parseExpenseDateForSort(a['expense_date']);
+        final db = _parseExpenseDateForSort(b['expense_date']);
+        if (da == null && db == null) {
+          final idA = int.tryParse('${a['expense_id']}') ?? 0;
+          final idB = int.tryParse('${b['expense_id']}') ?? 0;
+          return idB.compareTo(idA);
+        }
+        if (da == null) return 1;
+        if (db == null) return -1;
+        final cmp = db.compareTo(da);
+        if (cmp != 0) return cmp;
+        final idA = int.tryParse('${a['expense_id']}') ?? 0;
+        final idB = int.tryParse('${b['expense_id']}') ?? 0;
+        return idB.compareTo(idA);
+      });
       setState(() {
-        _expenses = (result['expenses'] as List?) ?? [];
+        _expenses = sorted;
         _loading = false;
       });
     } else {
@@ -114,6 +148,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (_) => _AddExpenseSheet(
         systemUserId: systemUserId,
@@ -490,9 +525,11 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
   @override
   Widget build(BuildContext context) {
     final bottomPad = MediaQuery.of(context).viewInsets.bottom;
+    // viewPadding.bottom is the gesture/navigation bar height regardless of keyboard.
+    final navBarPad = MediaQuery.of(context).viewPadding.bottom;
 
     return Container(
-      padding: EdgeInsets.fromLTRB(24, 20, 24, 24 + bottomPad),
+      padding: EdgeInsets.fromLTRB(24, 20, 24, 24 + bottomPad + navBarPad),
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -679,7 +716,9 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: (_loading || widget.expenseTypes.isEmpty) ? null : _submit,
+              onPressed: (_loading || widget.expenseTypes.isEmpty)
+                  ? null
+                  : _submit,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,
                 foregroundColor: Colors.white,

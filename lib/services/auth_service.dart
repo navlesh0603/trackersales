@@ -33,7 +33,17 @@ class AuthService {
         // Log the response for debugging (will show in terminal)
         print('Login API Response: ${response.body}');
 
-        final dynamic data = json.decode(response.body);
+        dynamic data;
+        try {
+          data = json.decode(response.body);
+        } on FormatException {
+          // Server returned a non-JSON body (e.g. HTML error page or empty body
+          // when credentials are wrong).  Treat as invalid credentials.
+          return {
+            'success': false,
+            'message': 'Invalid mobile number or password. Please try again.',
+          };
+        }
 
         if (data is Map<String, dynamic> &&
             data['data'] is List &&
@@ -53,7 +63,9 @@ class AuthService {
               // This handles the "Invalid Login Details." case
               return {
                 'success': false,
-                'message': message.isNotEmpty ? message : 'Login failed',
+                'message': message.isNotEmpty
+                    ? message
+                    : 'Invalid mobile number or password. Please try again.',
               };
             }
           }
@@ -61,12 +73,13 @@ class AuthService {
 
         return {
           'success': false,
-          'message': 'Invalid credentials or account not found.',
+          'message': 'Invalid mobile number or password. Please try again.',
         };
       } else {
         return {
           'success': false,
-          'message': 'Server error: ${response.statusCode}',
+          'message':
+              'Server error (${response.statusCode}). Please try again later.',
         };
       }
     } on SocketException {
@@ -82,7 +95,7 @@ class AuthService {
     } catch (e) {
       return {
         'success': false,
-        'message': 'An error occurred: ${e.toString()}',
+        'message': 'Something went wrong. Please try again.',
       };
     }
   }
@@ -162,7 +175,16 @@ class AuthService {
   }
 
   // Forgot Password API (generates OTP)
+  // Retries once automatically when the server returns an empty/non-JSON body,
+  // which happens intermittently on cold connections.
   Future<Map<String, dynamic>> forgotPassword(String username) async {
+    return _forgotPasswordAttempt(username, retryOnBadResponse: true);
+  }
+
+  Future<Map<String, dynamic>> _forgotPasswordAttempt(
+    String username, {
+    required bool retryOnBadResponse,
+  }) async {
     try {
       final url = Uri.parse(
         '$_baseUrl/ForgotPasswordApi.htm?username=$username',
@@ -179,8 +201,38 @@ class AuthService {
             },
           );
 
+      print('ForgotPassword API status: ${response.statusCode}');
+      print('ForgotPassword API body: ${response.body}');
+
       if (response.statusCode == 200) {
-        final dynamic data = json.decode(response.body);
+        // Guard: server sometimes returns an empty body on the first request
+        // (cold connection / session initialisation). Retry once automatically.
+        if (response.body.trim().isEmpty) {
+          if (retryOnBadResponse) {
+            await Future.delayed(const Duration(milliseconds: 600));
+            return _forgotPasswordAttempt(username, retryOnBadResponse: false);
+          }
+          return {
+            'success': false,
+            'message': 'Server did not respond. Please try again.',
+          };
+        }
+
+        dynamic data;
+        try {
+          data = json.decode(response.body);
+        } on FormatException {
+          // Non-JSON body (e.g. HTML error page). Retry once.
+          if (retryOnBadResponse) {
+            await Future.delayed(const Duration(milliseconds: 600));
+            return _forgotPasswordAttempt(username, retryOnBadResponse: false);
+          }
+          return {
+            'success': false,
+            'message':
+                'Server returned an unexpected response. Please try again.',
+          };
+        }
 
         if (data is Map<String, dynamic> &&
             data['data'] is List &&
@@ -189,31 +241,41 @@ class AuthService {
 
           if (result is Map<String, dynamic>) {
             final message = result['message']?.toString() ?? '';
+            // otp may be an int or string in the response
             final otp = result['otp']?.toString() ?? '';
-            final systemUserId =
-                (result['system_user_id'] as num?)?.toInt() ?? 0;
+            final systemUserId = (result['system_user_id'] is num)
+                ? (result['system_user_id'] as num).toInt()
+                : int.tryParse(result['system_user_id']?.toString() ?? '') ?? 0;
 
-            if (message.toLowerCase().contains('otp') && otp.isNotEmpty) {
+            if (otp.isNotEmpty) {
               return {
                 'success': true,
-                'message': message,
+                'message': message.isNotEmpty
+                    ? message
+                    : 'OTP sent to your registered mobile number.',
                 'otp': otp,
                 'system_user_id': systemUserId,
               };
             } else {
               return {
                 'success': false,
-                'message': message.isNotEmpty ? message : 'Failed to send OTP',
+                'message': message.isNotEmpty
+                    ? message
+                    : 'Mobile number not found. Please check and try again.',
               };
             }
           }
         }
 
-        return {'success': false, 'message': 'Invalid response from server'};
+        return {
+          'success': false,
+          'message': 'Mobile number not found. Please check and try again.',
+        };
       } else {
         return {
           'success': false,
-          'message': 'Server error: ${response.statusCode}',
+          'message':
+              'Server error (${response.statusCode}). Please try again later.',
         };
       }
     } on SocketException {
@@ -229,7 +291,7 @@ class AuthService {
     } catch (e) {
       return {
         'success': false,
-        'message': 'An error occurred: ${e.toString()}',
+        'message': 'Something went wrong. Please try again.',
       };
     }
   }

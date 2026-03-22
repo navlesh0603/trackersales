@@ -537,7 +537,6 @@ class _TripDetailScreenState extends State<TripDetailScreen>
                 Expanded(
                   flex: 3,
                   child: Container(
-                    padding: const EdgeInsets.all(24),
                     decoration: const BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.vertical(
@@ -547,199 +546,203 @@ class _TripDetailScreenState extends State<TripDetailScreen>
                         BoxShadow(color: Colors.black12, blurRadius: 20),
                       ],
                     ),
-                    child: SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  _trip.title,
-                                  style: GoogleFonts.outfit(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
+                    child: SafeArea(
+                      top: false,
+                      child: SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        padding: EdgeInsets.fromLTRB(24, 24, 24, 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    _trip.title,
+                                    style: GoogleFonts.outfit(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              Builder(
-                                builder: (context) {
-                                  final statusLower = _trip.status
-                                      .toLowerCase()
-                                      .trim();
-                                  String label;
-                                  Color bg;
-                                  Color fg;
+                                Builder(
+                                  builder: (context) {
+                                    final statusLower = _trip.status
+                                        .toLowerCase()
+                                        .trim();
+                                    String label;
+                                    Color bg;
+                                    Color fg;
 
-                                  if (statusLower == 'scheduled') {
-                                    label = 'SCHEDULED';
-                                    bg = Colors.blue[50]!;
-                                    fg = Colors.blue[800]!;
-                                  } else if (statusLower == 'started' ||
-                                      statusLower == 'start' ||
-                                      statusLower == 'in progress' ||
-                                      statusLower == 'ongoing' ||
-                                      _trip.isActive) {
-                                    label = 'ACTIVE';
-                                    bg = Colors.orange[50]!;
-                                    fg = Colors.orange[800]!;
-                                  } else {
-                                    label = 'COMPLETED';
-                                    bg = Colors.green[50]!;
-                                    fg = Colors.green[800]!;
-                                  }
+                                    if (statusLower == 'scheduled') {
+                                      label = 'SCHEDULED';
+                                      bg = Colors.blue[50]!;
+                                      fg = Colors.blue[800]!;
+                                    } else if (statusLower == 'started' ||
+                                        statusLower == 'start' ||
+                                        statusLower == 'in progress' ||
+                                        statusLower == 'ongoing' ||
+                                        _trip.isActive) {
+                                      label = 'ACTIVE';
+                                      bg = Colors.orange[50]!;
+                                      fg = Colors.orange[800]!;
+                                    } else {
+                                      label = 'COMPLETED';
+                                      bg = Colors.green[50]!;
+                                      fg = Colors.green[800]!;
+                                    }
 
-                                  return Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 6,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: bg,
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Text(
-                                      label,
-                                      style: GoogleFonts.outfit(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: fg,
+                                    return Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 6,
                                       ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          if (_trip.description.isNotEmpty)
-                            Text(
-                              _trip.description,
-                              style: GoogleFonts.outfit(
-                                color: Colors.grey[600],
-                                fontSize: 15,
-                              ),
-                            ),
-                          const Divider(height: 40),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: [
-                              _buildStatItem(
-                                Icons.calendar_month_outlined,
-                                "Date",
-                                "${_trip.startTime.day}/${_trip.startTime.month}/${_trip.startTime.year}",
-                              ),
-                              _buildStatItem(
-                                Icons.straighten_rounded,
-                                "Distance",
-                                "${_trip.distanceKm.toStringAsFixed(2)} km",
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 40),
-                          _buildLocationTimeline(),
-                          if (_trip.notes.isNotEmpty) ...[
-                            const SizedBox(height: 32),
-                            Text(
-                              "Visit Summary / Notes",
-                              style: GoogleFonts.outfit(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
+                                      decoration: BoxDecoration(
+                                        color: bg,
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        label,
+                                        style: GoogleFonts.outfit(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: fg,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
                             ),
                             const SizedBox(height: 12),
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: Colors.grey[50],
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: Colors.grey[100]!),
-                              ),
-                              child: Text(
-                                _trip.notes,
+                            if (_trip.description.isNotEmpty)
+                              Text(
+                                _trip.description,
                                 style: GoogleFonts.outfit(
-                                  color: Colors.black87,
-                                  height: 1.5,
+                                  color: Colors.grey[600],
+                                  fontSize: 15,
                                 ),
                               ),
-                            ),
-                          ],
-                          const SizedBox(height: 80),
-                          // Bottom action: for scheduled trips show \"Start Trip\",
-                          // for active trips show \"Finish Trip\". Completed trips
-                          // have no primary action.
-                          if (_trip.status.toLowerCase().trim() ==
-                              'scheduled') ...[
-                            const SizedBox(height: 24),
-                            SizedBox(
-                              width: double.infinity,
-                              height: 56,
-                              child: ElevatedButton(
-                                onPressed: widget.canStart
-                                    ? _startScheduledTrip
-                                    : () {
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              "Plan Approval Pending. You can only start trip after plan is approved.",
-                                            ),
-                                            backgroundColor: Colors.orange,
-                                          ),
-                                        );
-                                      },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: widget.canStart
-                                      ? Colors.green
-                                      : Colors.grey[400],
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(18),
-                                  ),
-                                  elevation: 0,
+                            const Divider(height: 40),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                _buildStatItem(
+                                  Icons.calendar_month_outlined,
+                                  "Date",
+                                  "${_trip.startTime.day}/${_trip.startTime.month}/${_trip.startTime.year}",
                                 ),
-                                child: Text(
-                                  widget.canStart
-                                      ? "Start Trip Now"
-                                      : "Approval Pending",
-                                  style: GoogleFonts.outfit(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18,
-                                  ),
+                                _buildStatItem(
+                                  Icons.straighten_rounded,
+                                  "Distance",
+                                  "${_trip.distanceKm.toStringAsFixed(2)} km",
                                 ),
-                              ),
-                            ),
-                          ] else if (_trip.isActive) ...[
-                            const SizedBox(height: 24),
-                            SizedBox(
-                              width: double.infinity,
-                              height: 56,
-                              child: ElevatedButton(
-                                onPressed: _finishTrip,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.redAccent,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(18),
-                                  ),
-                                  elevation: 0,
-                                ),
-                                child: Text(
-                                  "Finish Trip Now",
-                                  style: GoogleFonts.outfit(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18,
-                                  ),
-                                ),
-                              ),
+                              ],
                             ),
                             const SizedBox(height: 40),
+                            _buildLocationTimeline(),
+                            if (_trip.notes.isNotEmpty) ...[
+                              const SizedBox(height: 32),
+                              Text(
+                                "Visit Summary / Notes",
+                                style: GoogleFonts.outfit(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[50],
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: Colors.grey[100]!),
+                                ),
+                                child: Text(
+                                  _trip.notes,
+                                  style: GoogleFonts.outfit(
+                                    color: Colors.black87,
+                                    height: 1.5,
+                                  ),
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 80),
+                            // Bottom action: for scheduled trips show \"Start Trip\",
+                            // for active trips show \"Finish Trip\". Completed trips
+                            // have no primary action.
+                            if (_trip.status.toLowerCase().trim() ==
+                                'scheduled') ...[
+                              const SizedBox(height: 24),
+                              SizedBox(
+                                width: double.infinity,
+                                height: 56,
+                                child: ElevatedButton(
+                                  onPressed: widget.canStart
+                                      ? _startScheduledTrip
+                                      : () {
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                "Plan Approval Pending. You can only start trip after plan is approved.",
+                                              ),
+                                              backgroundColor: Colors.orange,
+                                            ),
+                                          );
+                                        },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: widget.canStart
+                                        ? Colors.green
+                                        : Colors.grey[400],
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(18),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                  child: Text(
+                                    widget.canStart
+                                        ? "Start Trip Now"
+                                        : "Approval Pending",
+                                    style: GoogleFonts.outfit(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ] else if (_trip.isActive) ...[
+                              const SizedBox(height: 24),
+                              SizedBox(
+                                width: double.infinity,
+                                height: 56,
+                                child: ElevatedButton(
+                                  onPressed: _finishTrip,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.redAccent,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(18),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                  child: Text(
+                                    "Finish Trip Now",
+                                    style: GoogleFonts.outfit(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 40),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
                     ),
                   ),

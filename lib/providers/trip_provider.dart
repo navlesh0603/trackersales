@@ -8,8 +8,6 @@ import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:io';
-import 'package:trackersales/screens/trip_detail_screen.dart';
-import 'package:trackersales/theme/app_theme.dart';
 
 class TripProvider extends ChangeNotifier {
   final TripService _tripService = TripService();
@@ -28,6 +26,26 @@ class TripProvider extends ChangeNotifier {
     required int systemUserId,
     required Trip trip,
   }) async {
+    await _restoreActiveTrip();
+    if (_activeTrip != null) {
+      _isLoading = false;
+      notifyListeners();
+      return {
+        'success': false,
+        'message':
+            'You already have a trip on. Finish your current trip before starting another.',
+      };
+    }
+    if (await _hasPersistedActiveTripId()) {
+      _isLoading = false;
+      notifyListeners();
+      return {
+        'success': false,
+        'message':
+            'An active trip is still registered. Open Trip Tracking to continue or finish it before starting a new trip.',
+      };
+    }
+
     _isLoading = true;
     notifyListeners();
 
@@ -197,9 +215,16 @@ class TripProvider extends ChangeNotifier {
       _trips.addAll(
         cachedData.map((data) => Trip.fromJson(data)).toList().reversed,
       );
-      _restoreActiveTrip();
+      await _restoreActiveTrip();
       notifyListeners();
     }
+  }
+
+  /// True when SharedPreferences still hold an active trip id (survives stale lists / races).
+  Future<bool> _hasPersistedActiveTripId() async {
+    final prefs = await SharedPreferences.getInstance();
+    final id = prefs.getString('active_trip_id');
+    return id != null && id.isNotEmpty;
   }
 
   Future<void> _restoreActiveTrip() async {
@@ -328,11 +353,19 @@ class TripProvider extends ChangeNotifier {
     required double lat,
     required double lng,
   }) async {
+    await _restoreActiveTrip();
     if (_activeTrip != null) {
       return {
         'success': false,
         'message':
             "You already have a trip on. Finish your current trip then start this.",
+      };
+    }
+    if (await _hasPersistedActiveTripId()) {
+      return {
+        'success': false,
+        'message':
+            'An active trip is still registered. Open Trip Tracking to continue or finish it before starting another trip.',
       };
     }
     _isLoading = true;
@@ -409,7 +442,7 @@ class TripProvider extends ChangeNotifier {
         tripsData.map((data) => Trip.fromJson(data)).toList().reversed,
       );
 
-      _restoreActiveTrip();
+      await _restoreActiveTrip();
     }
 
     _isLoading = false;

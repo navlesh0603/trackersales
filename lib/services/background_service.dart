@@ -121,12 +121,11 @@ void onStart(ServiceInstance service) async {
 
   service.on('stopService').listen((event) async {
     await positionSubscription?.cancel();
-    // Clear trip data on stop
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('active_trip_distance');
-    await prefs.remove('active_trip_path');
-    await prefs.remove('active_trip_start_time');
-    await prefs.remove('active_trip_id');
+    // Do NOT clear prefs here — the main isolate reads active_trip_distance
+    // for the EndTrip API call before invoking stopService.  Clearing here
+    // would race and could wipe the distance before it is read.
+    // The main isolate's endTrip() and TripProvider.endTrip() already
+    // remove all prefs keys after the API call succeeds.
     service.stopSelf();
   });
 

@@ -433,7 +433,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            'You\'re checked in',
+            'You\'re Punched in',
             style: GoogleFonts.outfit(
               fontSize: 18,
               fontWeight: FontWeight.w600,

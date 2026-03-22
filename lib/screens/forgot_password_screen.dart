@@ -37,30 +37,66 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
       if (mounted) {
         if (result['success']) {
+          // Show snackbar first, then navigate so the context is still valid.
+          ScaffoldMessenger.of(context).clearSnackBars();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(
+                    Icons.check_circle_outline_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(result['message']?.toString() ?? 'OTP sent.')),
+                ],
+              ),
+              backgroundColor: Colors.green.shade700,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+
           // Navigate to reset password screen with OTP and system_user_id
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
               builder: (context) => ResetPasswordScreen(
-                systemUserId: result['system_user_id'],
-                generatedOtp: result['otp'], // Save OTP for validation
+                systemUserId: result['system_user_id'] as int,
+                generatedOtp: result['otp']?.toString() ?? '',
                 username: _mobileController.text.trim(),
               ),
             ),
           );
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(result['message']),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 3),
-            ),
-          );
         } else {
+          ScaffoldMessenger.of(context).clearSnackBars();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(result['message']),
-              backgroundColor: Colors.red,
+              content: Row(
+                children: [
+                  const Icon(
+                    Icons.error_outline_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      result['message']?.toString() ??
+                          'Failed to send OTP. Please try again.',
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.red.shade700,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               duration: const Duration(seconds: 4),
             ),
           );

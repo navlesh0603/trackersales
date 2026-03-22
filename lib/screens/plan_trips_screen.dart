@@ -62,6 +62,31 @@ class _PlanTripsScreenState extends State<PlanTripsScreen> {
       return;
     }
 
+    final statusUpper =
+        (_latestPlanStatus ??
+                widget.plan['status'] ??
+                widget.plan['approval_approved'] ??
+                '')
+            .toString()
+            .toUpperCase()
+            .trim();
+    if (statusUpper != 'NEW') {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              statusUpper.isEmpty
+                  ? 'Unable to verify plan status. Pull to refresh and try again.'
+                  : 'Trips can only be added while the plan status is NEW. '
+                        'This plan is $statusUpper — adding trips is not allowed.',
+            ),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+
     final rawId = widget.plan['plan_id'] ?? widget.plan['plans_id'];
     final planId = int.tryParse(rawId?.toString() ?? '0') ?? 0;
     if (planId == 0) return;
@@ -275,7 +300,8 @@ class _PlanTripsScreenState extends State<PlanTripsScreen> {
         isNew &&
         upperStatus != "SUBMITTED" &&
         !_locallySubmittedForApproval;
-    final bool canAddTrips = _planDateIsTodayOrFuture();
+    // Add trips only for NEW plans (not approved / submitted / etc.) and valid plan date.
+    final bool canAddTrips = _planDateIsTodayOrFuture() && isNew;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -291,10 +317,33 @@ class _PlanTripsScreenState extends State<PlanTripsScreen> {
         foregroundColor: Colors.black,
         actions: [
           if (canAddTrips)
-            IconButton(
-              tooltip: 'Add trip to plan',
-              icon: const Icon(Icons.add_road_rounded),
-              onPressed: _isLoading ? null : _openAddTripToPlan,
+            Padding(
+              padding: const EdgeInsets.only(right: 8, top: 6, bottom: 6),
+              child: FilledButton.icon(
+                onPressed: _isLoading ? null : _openAddTripToPlan,
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: Text(
+                  'Add trip',
+                  style: GoogleFonts.outfit(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
             ),
         ],
       ),
@@ -499,7 +548,9 @@ class _PlanTripsScreenState extends State<PlanTripsScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 32),
                   child: Text(
-                    'This plan’s date is in the past. New trips can only be added to today’s or future plans.',
+                    !_planDateIsTodayOrFuture()
+                        ? 'This plan’s date is in the past. New trips can only be added to today’s or future plans.'
+                        : 'Trips can only be added while the plan status is NEW. Once the plan is approved, submitted, or no longer NEW, you cannot add trips here.',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.outfit(
                       color: Colors.grey[500],

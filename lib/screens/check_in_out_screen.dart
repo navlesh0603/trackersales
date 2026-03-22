@@ -26,6 +26,8 @@ class _CheckInOutScreenState extends State<CheckInOutScreen> {
 
   bool _pageLoading = true;
   bool _checkedIn = false;
+  /// Must be punched in (attendance) before visit check-in is allowed.
+  bool _isPunchedIn = false;
   String _checkInTimeLabel = '';
   String _checkInDateLabel = '';
 
@@ -79,8 +81,12 @@ class _CheckInOutScreenState extends State<CheckInOutScreen> {
       return;
     }
 
+    final punchRes = await _service.getLastPunchStatus(user.systemUserId);
     final result = await _service.getLastCheckInStatus(user.systemUserId);
     if (!mounted) return;
+
+    final punchedIn =
+        punchRes['success'] == true && punchRes['isClockedIn'] == true;
 
     if (result['success'] == true && result['isCheckedIn'] == true) {
       final raw = result['raw'];
@@ -90,11 +96,13 @@ class _CheckInOutScreenState extends State<CheckInOutScreen> {
       }
       setState(() {
         _checkedIn = true;
+        _isPunchedIn = punchedIn;
         _pageLoading = false;
       });
     } else {
       setState(() {
         _checkedIn = false;
+        _isPunchedIn = punchedIn;
         _checkInTimeLabel = '';
         _checkInDateLabel = '';
         _pageLoading = false;
@@ -184,15 +192,24 @@ class _CheckInOutScreenState extends State<CheckInOutScreen> {
       return;
     }
 
+    final user = Provider.of<AuthProvider>(context, listen: false).user;
+    if (user == null) return;
+
+    final punchRes = await _service.getLastPunchStatus(user.systemUserId);
+    if (!mounted) return;
+    if (punchRes['success'] == true && punchRes['isClockedIn'] != true) {
+      setState(() => _isPunchedIn = false);
+      _showMessage(
+        'Please punch in (Attendance) before visit check-in.',
+        isError: true,
+      );
+      return;
+    }
+    setState(() => _isPunchedIn = true);
+
     setState(() {
       _isCheckingIn = true;
     });
-
-    final user = Provider.of<AuthProvider>(context, listen: false).user;
-    if (user == null) {
-      setState(() => _isCheckingIn = false);
-      return;
-    }
 
     final result = await _service.checkIn(
       systemUserId: user.systemUserId,
@@ -284,10 +301,14 @@ class _CheckInOutScreenState extends State<CheckInOutScreen> {
   }
 
   void _showMessage(String msg, {required bool isError}) {
-    ScaffoldMessenger.of(context).showSnackBar(
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
       SnackBar(
         content: Text(msg),
         behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
         backgroundColor: isError ? Colors.redAccent : Colors.black87,
       ),
     );
@@ -310,6 +331,18 @@ class _CheckInOutScreenState extends State<CheckInOutScreen> {
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          IconButton(
+            tooltip: 'Refresh status',
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: _pageLoading
+                ? null
+                : () async {
+                    setState(() => _pageLoading = true);
+                    await _loadCheckInStatus();
+                  },
+          ),
+        ],
       ),
       body: SafeArea(
         child: _pageLoading
@@ -330,6 +363,10 @@ class _CheckInOutScreenState extends State<CheckInOutScreen> {
       children: [
         _buildDateTimeCard(),
         const SizedBox(height: 20),
+        if (!_isPunchedIn) ...[
+          _buildPunchInRequiredCard(),
+          const SizedBox(height: 20),
+        ],
         _buildLocationCard(),
         const SizedBox(height: 20),
         _buildCheckInPhotoCard(),
@@ -808,6 +845,34 @@ class _CheckInOutScreenState extends State<CheckInOutScreen> {
     );
   }
 
+  Widget _buildPunchInRequiredCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.orange.shade200),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline_rounded, color: Colors.orange.shade800),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'You must punch in on the Attendance screen before you can check in for a visit.',
+              style: GoogleFonts.outfit(
+                fontSize: 14,
+                color: Colors.orange.shade900,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCheckInButton() {
     final canSubmit =
         _latitude != null && _longitude != null && !_isLoadingLocation;
@@ -843,7 +908,7 @@ class _CheckInOutScreenState extends State<CheckInOutScreen> {
 
   Widget _buildCheckOutButton() {
     final hasNotes = _notesController.text.trim().isNotEmpty;
-    final canSubmit =
+    final readyToSubmit =
         _latitude != null &&
         _longitude != null &&
         !_isLoadingLocation &&
@@ -853,11 +918,13 @@ class _CheckInOutScreenState extends State<CheckInOutScreen> {
     return SizedBox(
       height: 56,
       child: OutlinedButton.icon(
-        onPressed: (canSubmit && !_isCheckingOut) ? _handleCheckOut : null,
+        // Always call _handleCheckOut so validation messages (SnackBars) show
+        // when photo, notes, or location are missing.
+        onPressed: !_isCheckingOut ? _handleCheckOut : null,
         style: OutlinedButton.styleFrom(
           foregroundColor: Colors.red.shade700,
           side: BorderSide(
-            color: canSubmit && !_isCheckingOut
+            color: readyToSubmit && !_isCheckingOut
                 ? Colors.red.shade700
                 : Colors.grey[300]!,
             width: 2,
