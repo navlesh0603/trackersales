@@ -292,12 +292,13 @@ class _PlanTripsScreenState extends State<PlanTripsScreen> {
     final bool isApproved = upperStatus == "APPROVED";
     // Both APPROVED and NOT REQUIRED allow starting trips.
     final bool canStart = isApproved || upperStatus == "NOT REQUIRED";
-    // Only truly NEW (not yet submitted) plans show the submit button.
+
     final bool isNew = upperStatus == "NEW";
     final bool showSubmitButton =
         !_isLoading &&
         needsApp &&
         isNew &&
+        _trips.isNotEmpty &&
         upperStatus != "SUBMITTED" &&
         !_locallySubmittedForApproval;
     // Add trips only for NEW plans (not approved / submitted / etc.) and valid plan date.

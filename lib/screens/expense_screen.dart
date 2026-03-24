@@ -421,11 +421,17 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
   int? _selectedTypeId;
   String? _photoPath;
   bool _loading = false;
+  String? _errorText;
 
   @override
   void initState() {
     super.initState();
     _selectedTypeId = null;
+    _amountController.addListener(_clearError);
+  }
+
+  void _clearError() {
+    if (_errorText != null) setState(() => _errorText = null);
   }
 
   @override
@@ -482,20 +488,23 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
   Future<void> _submit() async {
     final amountText = _amountController.text.trim();
     if (amountText.isEmpty) {
-      _snack('Please enter an amount.');
+      setState(() => _errorText = 'Please enter an amount.');
       return;
     }
     final amount = double.tryParse(amountText);
     if (amount == null || amount <= 0) {
-      _snack('Please enter a valid amount.');
+      setState(() => _errorText = 'Please enter a valid amount.');
       return;
     }
     if (_selectedTypeId == null) {
-      _snack('Please select an expense type.');
+      setState(() => _errorText = 'Please select an expense type.');
       return;
     }
 
-    setState(() => _loading = true);
+    setState(() {
+      _errorText = null;
+      _loading = true;
+    });
 
     final dateStr = DateFormat('dd/MM/yyyy').format(_selectedDate);
     final result = await _service.addExpense(
@@ -512,13 +521,30 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
     if (result['success'] == true) {
       widget.onSuccess();
     } else {
-      _snack(result['message'] ?? 'Failed to add expense.');
+      setState(() => _errorText = result['message'] ?? 'Failed to add expense.');
     }
   }
 
-  void _snack(String msg) {
+  void _snack(String msg, {bool isError = true}) {
+    ScaffoldMessenger.of(context).clearSnackBars();
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), behavior: SnackBarBehavior.floating),
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(
+              isError ? Icons.error_outline_rounded : Icons.check_circle_outline_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
+            const SizedBox(width: 10),
+            Expanded(child: Text(msg)),
+          ],
+        ),
+        backgroundColor: isError ? Colors.red.shade700 : Colors.green.shade700,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        duration: const Duration(seconds: 3),
+      ),
     );
   }
 
@@ -608,7 +634,10 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
                       ),
                       onChanged: (val) {
                         if (val != null) {
-                          setState(() => _selectedTypeId = val);
+                          setState(() {
+                            _selectedTypeId = val;
+                            _errorText = null;
+                          });
                         }
                       },
                       items: widget.expenseTypes
@@ -712,6 +741,36 @@ class _AddExpenseSheetState extends State<_AddExpenseSheet> {
             ),
           ),
           const SizedBox(height: 24),
+
+          // Inline validation / API error
+          if (_errorText != null) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.red.shade200),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.error_outline_rounded,
+                      color: Colors.red.shade600, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _errorText!,
+                      style: TextStyle(
+                        color: Colors.red.shade700,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
 
           // Submit button
           SizedBox(

@@ -421,13 +421,39 @@ class _FutureTripsScreenState extends State<FutureTripsScreen> {
     );
   }
 
+  String _planStatusLabel(String rawStatus, bool needsApp) {
+    switch (rawStatus) {
+      case 'NEW':
+        return 'New';
+      case 'SUBMITTED':
+        return 'Submitted';
+      case 'APPROVED':
+        return 'Approved';
+      case 'NOT REQUIRED':
+        return 'Scheduled';
+      default:
+        return rawStatus.isEmpty ? (needsApp ? 'New' : 'Scheduled') : rawStatus;
+    }
+  }
+
+  Color _planStatusColor(String rawStatus, bool needsApp) {
+    switch (rawStatus) {
+      case 'NEW':
+        return Colors.blue;
+      case 'SUBMITTED':
+        return Colors.orange;
+      case 'APPROVED':
+        return Colors.green;
+      case 'NOT REQUIRED':
+        return Colors.blue;
+      default:
+        return Colors.grey;
+    }
+  }
+
   Widget _buildPlanCard(dynamic plan) {
     final String rawStatus = (plan['status'] ?? '').toString().toUpperCase();
     final bool needsApp = plan['approval_required'] == "Yes";
-
-    // Consider NOT REQUIRED effectively "approved" from a start‑permission POV.
-    final bool isApproved =
-        rawStatus == "APPROVED" || rawStatus == "NOT REQUIRED";
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -481,12 +507,8 @@ class _FutureTripsScreenState extends State<FutureTripsScreen> {
                       ),
                     ),
                     _statusBadge(
-                      needsApp
-                          ? (isApproved ? "Approved" : "Pending Approval")
-                          : "Scheduled",
-                      needsApp
-                          ? (isApproved ? Colors.green : Colors.orange)
-                          : Colors.blue,
+                      _planStatusLabel(rawStatus, needsApp),
+                      _planStatusColor(rawStatus, needsApp),
                     ),
                   ],
                 ),
